@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Übersicht · TeachBuddy</title>
+<!-- Installierbar als Vollbild-PWA. -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#b57722">
+<script src="./app-installieren.js" data-name="TeachBuddy" defer></script>
+<!-- iOS beachtet das Manifest nur halb: Ohne diese drei Zeilen startet die
+     App auf dem iPhone weiter im Safari-Rahmen. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TeachBuddy">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+
+<link rel="stylesheet" href="./stil.css">
+<style>
+  /* A behält sein Symbol je Lektion. Dazu die Details, die B und C getrennt
+     trugen — jedes einzeln abschaltbar, damit sichtbar wird, wo es kippt. */
+  .zustand { flex: none; width: 15px; height: 15px; border-radius: 50%; position: relative; display: grid; place-items: center; }
+  .z-ungehoert { border: 1.5px solid var(--text-3); }
+  .z-angefangen { border: 1.5px solid var(--hoeren); }
+  .z-angefangen::before {
+    content: ''; position: absolute; inset: 2px; border-radius: 50%;
+    background: conic-gradient(var(--hoeren) calc(var(--anteil) * 1%), transparent 0);
+  }
+  .z-gehoert { background: var(--hoeren); }
+  .z-geprueft { background: var(--geprueft); }
+  .z-geprueft svg { width: 9px; height: 9px; fill: none; stroke: var(--bg); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  .k-zahl { flex: none; font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+  /* Zeile 3: die Detailspur unter dem Titel */
+  .k-spur { display: flex; align-items: center; gap: 10px; margin-top: 7px; flex-wrap: wrap; }
+  .k-bar { height: 3px; border-radius: 2px; background: var(--linie); width: 110px; display: flex; overflow: hidden; flex: none; }
+  .k-bar i { display: block; height: 100%; }
+  .k-bar .s-geprueft { background: var(--geprueft); }
+  .k-bar .s-gehoert { background: var(--hoeren); }
+
+  .k-punkte { display: flex; gap: 4px; flex: none; }
+  .k-punkte i { width: 7px; height: 7px; border-radius: 50%; background: var(--linie); }
+  .k-punkte i.gehoert { background: var(--hoeren); }
+  .k-punkte i.geprueft { background: var(--geprueft); }
+  .k-punkte i.angefangen { background: var(--hoeren-matt); box-shadow: inset 0 0 0 1.5px var(--hoeren); }
+
+  .k-rest { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .k-rest.fertig { color: var(--geprueft); }
+  .k-rest.leer { font-style: italic; opacity: .55; }
+
+  .k-symbole { display: flex; gap: 7px; color: var(--text-3); }
+  .k-symbole svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+
+  /* Liste mit Details. Die Detailspur trägt Punktreihe und
+     Restzeit. Der Fortschrittsbalken ist raus — die Punktreihe sagt dasselbe im
+     selben Platz und zusätzlich, welche Lektion angefangen ist. Die
+     Werkzeug-Symbole sind raus, weil sie an jedem Kapitel gleich stehen und
+     damit nichts unterscheiden (OBF-6). */
+  .k-bar, .k-symbole { display: none; }
+
+  .kapitel:not(.offen) .l-liste, .kapitel:not(.offen) .k-einstieg { display: none; }
+
+  .legende { display: flex; gap: 8px 16px; flex-wrap: wrap; max-width: 100%; font-size: 12px; color: var(--text-3); margin: 0 0 10px; align-items: center; }
+  .legende span { display: inline-flex; align-items: center; gap: 6px; }
+
+</style>
+</head>
+<body>
+<div class="huelle" id="app"></div>
+<script type="module">
+import { kapitel, lernpfade, fortschritt, mmss } from './daten.js';
+import { zustandVon, istGehoert } from './zustand.js';
+import { kopf, weiter, kapitelEinstieg, aufklappen, ikon, fusszeile, fassungZeigen, lektionsWeg } from './huelle.js';
+
+const haken = '<svg viewBox="0 0 12 12"><path d="M2.5 6.3l2.3 2.3L9.5 3.7"/></svg>';
+
+const glyph = (l) => {
+  const z = zustandVon(l);
+  if (z === 'fragen_beantwortet') return `<span class="zustand z-geprueft" title="Fragen beantwortet">${haken}</span>`;
+  if (z === 'gehoert') return '<span class="zustand z-gehoert" title="gehört"></span>';
+  if (z === 'angefangen') {
+    const a = Math.round((l.gehoert_anteil ?? 0) * 100);
+    return `<span class="zustand z-angefangen" style="--anteil:${a}" title="angefangen, ${a} %"></span>`;
+  }
+  return '<span class="zustand z-ungehoert" title="ungehört"></span>';
+};
+
+const punkt = (l) => {
+  const z = zustandVon(l);
+  if (z === 'fragen_beantwortet') return '<i class="geprueft"></i>';
+  if (z === 'gehoert') return '<i class="gehoert"></i>';
+  if (z === 'angefangen') return '<i class="angefangen"></i>';
+  return '<i></i>';
+};
+
+const restzeit = (k) => {
+  const f = fortschritt(k);
+  // Ein Kapitel ohne gebaute Lektion ist nicht fertig, es ist leer. "fertig"
+  // waere eine Luege gegenueber dem, der noch darauf wartet (TB-8).
+  if (f.gesamt === 0) return '<span class="k-rest leer">noch keine Folge gebaut</span>';
+  // Und "fertig" gilt erst, wenn auch nichts mehr geplant ist: Wer 1 von 13
+  // gehoert hat, ist nicht fertig, auch wenn die eine durch ist.
+  if (f.offenSek === 0 && !f.geplant) return '<span class="k-rest fertig">fertig</span>';
+  const offen = f.offenSek ? `${Math.round(f.offenSek / 60)} min offen` : 'gehört';
+  return `<span class="k-rest">${offen}${f.geplant ? ` · ${f.geplant} geplant` : ''}</span>`;
+};
+
+const kapitelHtml = (k) => {
+  const f = fortschritt(k);
+  return `
+  <div class="kapitel ${k.echt ? '' : 'platzhalter'}">
+    <button class="k-kopf" aria-expanded="false">
+      <span class="k-nr">${k.nummer}</span>
+      <span class="k-mitte">
+        <div class="k-titel">${k.titel}</div>
+        ${k.kurzfassung ? `<div class="k-kurz">${k.kurzfassung}</div>` : ''}
+        <div class="k-spur">
+          <span class="k-bar">
+            <i class="s-geprueft" style="width:${f.gesamt ? (f.geprueft / f.gesamt) * 100 : 0}%"></i>
+            <i class="s-gehoert" style="width:${f.gesamt ? ((f.gehoert - f.geprueft) / f.gesamt) * 100 : 0}%"></i>
+          </span>
+          <span class="k-punkte">${k.lektionen.map(punkt).join('')}</span>
+          ${restzeit(k)}
+          <span class="k-symbole">
+            ${k.hat_mindmap ? ikon.mindmap : ''}${k.hat_diskussion ? ikon.diskussion : ''}${ikon.fragen}
+          </span>
+        </div>
+      </span>
+      <span class="k-zahl">${f.gehoert}/${f.gesamt}</span>
+      <span class="k-pfeil">${ikon.pfeil}</span>
+    </button>
+    <ul class="l-liste">
+      ${k.lektionen.map((l) => ((l.geplant || l.hat_ton === false) ? `
+        <li><span class="l-zeile l-geplant">
+          <span class="zustand z-ungehoert"></span>
+          <span class="l-titel">${l.titel}</span>
+          <span class="l-dauer">${l.geplant ? 'noch keine Folge' : 'Wissen da, Folge fehlt'}</span>
+        </span></li>` : `
+        <li><a class="l-zeile" href="${lektionsWeg(l, k)}">
+          ${glyph(l)}
+          <span class="l-titel">${l.titel}</span>
+          <span class="l-dauer">${mmss(l.dauer_sek)}</span>
+          <span class="k-pfeil">${ikon.pfeil}</span>
+        </a></li>`)).join('')}
+    </ul>
+    ${kapitelEinstieg(k)}
+  </div>`;
+};
+
+// Nach Lernpfad gruppiert. Bei einem einzigen Pfad entfaellt die Überschrift —
+// sie stünde sonst über allem und sagte nichts.
+const pfadGruppen = () => {
+  if (lernpfade.length < 2) return kapitel.map(kapitelHtml).join('');
+  return lernpfade.map((p) => {
+    const meine = kapitel.filter((k) => k.pfad_id === p.id);
+    if (!meine.length) return '';
+    const f = meine.reduce((a, k) => {
+      const x = fortschritt(k);
+      return { g: a.g + x.gesamt, h: a.h + x.gehoert, p: a.p + x.geplant };
+    }, { g: 0, h: 0, p: 0 });
+    return `<section class="pfad">
+      <div class="pfad-kopf">
+        <h2>${p.titel}</h2>
+        <span class="pfad-bilanz">${f.h} von ${f.g} gehört${f.p ? ` · ${f.p} geplant` : ''}</span>
+      </div>
+      ${meine.map(kapitelHtml).join('')}
+    </section>`;
+  }).join('');
+};
+
+document.getElementById('app').innerHTML = kopf() + weiter() + `
+  <div class="legende">
+    <span><i class="zustand z-ungehoert"></i> ungehört</span>
+    <span><i class="zustand z-angefangen" style="--anteil:45"></i> angefangen</span>
+    <span><i class="zustand z-gehoert"></i> gehört</span>
+    <span><i class="zustand z-geprueft">${haken}</i> Fragen beantwortet</span>
+  </div>
+  <main>${pfadGruppen()}</main>` + fusszeile();
+
+aufklappen(document);
+fassungZeigen();
+// Bei genau einem Kapitel steht seine Liste offen. Sonst zeigt die Uebersicht
+// den Titel des Lernpfads und darunter denselben Titel noch einmal, und man
+// muss ihn antippen, um ueberhaupt etwas zu sehen.
+const auf = kapitel.length === 1
+  ? document.querySelector('.kapitel')
+  : document.querySelectorAll('.kapitel')[1];
+auf?.classList.add('offen');
+auf?.setAttribute('open', '');
+auf?.querySelector('.k-kopf')?.setAttribute('aria-expanded', 'true');
+</script>
+
+<script type="module">
+  // Ohne registrierten Service Worker bietet kein Browser „installieren" an —
+  // das Manifest allein genuegt nicht.
+  // **Ein wartender Worker wird gemeldet, nicht durchgedrückt.**
+  // Er übernimmt erst, wenn keine Seite der alten Fassung mehr offen ist —
+  // so sieht eine Seite immer genau eine Fassung. Bis dahin steht der Hinweis
+  // unten in der Fußzeile, leise und wegklickbar.
+  if ('serviceWorker' in navigator) {
+    const ort = new URL('./', import.meta.url);
+    navigator.serviceWorker
+      .register(new URL('sw.js', ort), { scope: ort.pathname, updateViaCache: 'none' })
+      .then((reg) => {
+        const melde = () => {
+          if (!reg.waiting) return;
+          const f = document.querySelector('.huelle-fuss');
+          if (!f || f.querySelector('.neue-fassung')) return;
+          const a = document.createElement('a');
+          a.className = 'neue-fassung';
+          a.href = '#';
+          a.textContent = 'neue Fassung laden';
+          // **`location.reload()` allein tut es nicht.** Ein Neuladen haelt
+          // die Seite am Leben, also wartet der neue Worker weiter — der
+          // Hinweis versprach etwas, das er nicht einloeste (14.09.2026).
+          // Erst uebernimmt der Wartende, dann laedt die Seite neu.
+          a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            a.textContent = 'laedt …';
+            reg.waiting?.postMessage({ art: 'jetzt-uebernehmen' });
+            // Kommt der Worker nicht, wird trotzdem geladen: schlimmstenfalls
+            // aendert sich nichts, aber nichts bleibt haengen.
+            setTimeout(() => location.reload(), 1500);
+          });
+          f.appendChild(a);
+        };
+        // Der Tausch ist vollzogen, wenn ein anderer Worker steuert.
+        let laedtSchon = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (laedtSchon) return;
+          laedtSchon = true;
+          location.reload();
+        });
+        melde();
+        reg.addEventListener('updatefound', () => {
+          const neu = reg.installing;
+          if (neu) neu.addEventListener('statechange', melde);
+        });
+      })
+      .catch((f) => console.warn('Service Worker nicht registriert:', f));
+  }
+</script>
+<script>
+// **Der Wächter.** Er steht bewusst hier und nicht in einem Modul: Bricht ein
+// Modulimport, läuft kein Modulcode mehr — auch kein Fehlerbehandler, der
+// darin steht. Am 13.09.2026 hieß das auf dem Telefon: schwarzer Bildschirm,
+// keine Zeile, kein Hinweis.
+//
+// Er prüft nur eines: Ist nach drei Sekunden etwas gezeichnet? Wenn nicht,
+// sagt er, was zu tun ist. Er repariert nichts — er sorgt dafür, dass man
+// nicht vor einer schwarzen Fläche steht.
+(function () {
+  var gemeldet = false;
+  // **Was genau bricht, nicht nur dass etwas bricht.** Am 13.09.2026 war der
+  // Cache auf die Geraet nachweislich sauber und die Fassung aktuell — und
+  // die App lud trotzdem nicht. Ohne den konkreten Fehler ist jede weitere
+  // Vermutung geraten.
+  var fehler = [];
+  function merke(t) { if (t && fehler.indexOf(t) < 0) fehler.push(t); }
+  addEventListener('error', function (e) {
+    if (e.target && e.target.src) merke('Datei fehlt: ' + e.target.src);
+    else if (e.target && e.target.href) merke('Datei fehlt: ' + e.target.href);
+    else if (e.message) merke(e.message + (e.filename ? '  (' + e.filename.split('/').pop()
+      + ':' + e.lineno + ')' : ''));
+  }, true);
+  addEventListener('unhandledrejection', function (e) {
+    merke('Abgebrochen: ' + ((e.reason && (e.reason.message || e.reason)) || 'unbekannt'));
+  });
+  function melde(warum) {
+    if (gemeldet) return;
+    gemeldet = true;
+    var z = document.getElementById('app') || document.body;
+    z.setAttribute('style', 'padding:24px;max-width:34rem;margin:0 auto;'
+      + 'font:16px/1.6 system-ui,sans-serif;color:#1c1f24;background:#f7f6f3;'
+      + 'min-height:100vh');
+    z.innerHTML = '<h1 style="font-size:19px;margin:0 0 10px">TeachBuddy lädt nicht</h1>'
+      + '<p style="margin:0 0 10px">' + warum + '</p>'
+      + '<p style="margin:0 0 18px;color:#6a7078;font-size:14px">Fast immer ist '
+      + 'ein alter Stand im Gerät schuld. Das Zurücksetzen wirft ihn weg und '
+      + 'kostet nichts außer einem Neuladen.</p>'
+      + (fehler.length
+          ? '<p style="margin:0 0 18px;font-size:13px;color:#b25b31;'
+            + 'background:#fff;border:1px solid #f2ddd2;border-radius:8px;'
+            + 'padding:10px 12px;word-break:break-word"><b>Was schiefging:</b><br>'
+            + fehler.join('<br>') + '</p>'
+          : '')
+      + '<p><a href="./neustart.html" style="display:inline-block;padding:11px 20px;'
+      + 'background:#b57722;color:#fff;border-radius:8px;text-decoration:none">'
+      + 'Zurücksetzen</a></p>';
+  }
+  // **Nicht einmal messen, sondern nachsehen, bis etwas da ist.** Ein
+  // einzelner Zeitpunkt trifft auf einem langsamen Geraet den Moment kurz vor
+  // dem Fertigwerden — und dann ueberschreibt der Waechter guten Inhalt.
+  var bis = Date.now() + 9000;
+  (function schauen() {
+    var z = document.getElementById('app');
+    if (z && z.children.length) return;            // da ist was, Ruhe
+    if (Date.now() > bis) {
+      melde('Die App hat nach neun Sekunden nichts angezeigt.');
+      return;
+    }
+    setTimeout(schauen, 400);
+  })();
+})();
+</script>
+</body>
+</html>

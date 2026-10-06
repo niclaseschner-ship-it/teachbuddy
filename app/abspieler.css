@@ -1,0 +1,86 @@
+/* Der Abspieler. Eigene Datei, weil ihn Lektions- und Kapitelansicht teilen. */
+
+.spieler-bild { padding: 0; }
+
+.spieler-jetzt {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 13px 16px 0; min-width: 0;
+}
+.jetzt-wort { flex: none; font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--text-3); }
+.jetzt-marke { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--hoeren); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.transport { padding: 8px 16px 4px; }
+.spur { position: relative; height: 24px; cursor: pointer; touch-action: none; }
+.spur:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; border-radius: 4px; }
+.spur-bahn { position: absolute; top: 10px; left: 0; right: 0; height: 4px; border-radius: 2px; background: var(--linie); }
+.spur-fuell { position: absolute; top: 10px; left: 0; height: 4px; border-radius: 2px; background: var(--hoeren); }
+.spur-kerbe { position: absolute; top: 6px; width: 2px; height: 12px; background: var(--text-3); border-radius: 1px; opacity: .7; }
+.spur-griff { position: absolute; top: 6px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--hoeren); box-shadow: 0 0 0 3px var(--flaeche); }
+.zeiten { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.knoepfe { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 16px 14px; flex-wrap: wrap; }
+.rund {
+  height: 38px; min-width: 38px; border-radius: 999px;
+  border: 1px solid var(--linie); background: none; color: var(--text-2);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font: inherit;
+}
+.rund:hover { color: var(--text); border-color: var(--text-3); }
+.rund.gross { width: 54px; height: 54px; background: var(--hoeren); border: 0; }
+.rund.gross svg { width: 17px; height: 17px; fill: #15171c; margin-left: 2px; }
+.rund.gross.laeuft svg { margin-left: 0; }
+.rund.sprung { padding: 0 11px; gap: 3px; }
+.rund.sprung svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.rund.sprung b { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rund.tempo { padding: 0 11px; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+.rund.tempo.schnell { color: var(--hoeren); border-color: var(--hoeren); }
+
+/* Zeile der Nebenfunktionen: offline, Zustand, Sprung zu den Fragen */
+.werkzeugzeile {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 16px 14px; border-bottom: 1px solid var(--linie-zart);
+}
+.wz {
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  background: none; border: 1px solid var(--linie); color: var(--text-2);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.wz:hover { color: var(--text); border-color: var(--text-3); }
+.wz svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wz.an { color: var(--geprueft); border-color: var(--geprueft); background: var(--geprueft-matt); }
+.wz.laedt { color: var(--text-3); opacity: .7; }
+/* OBF-19: gesagt ist gesagt — der Knopf zeigt, dass die Folge bewertet ist. */
+.wz.gesagt { color: var(--hoeren); border-color: var(--hoeren); }
+
+/* Nachbarlektionen */
+.nachbarn { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linie-zart); }
+.nachbar {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px;
+  text-decoration: none; color: var(--text-2); font-size: 13px;
+}
+.nachbar.rechts { justify-content: flex-end; text-align: right; }
+.nachbar:hover { color: var(--text); }
+.nachbar.leer { pointer-events: none; }
+.nachbar .pfeil { flex: none; font-size: 19px; line-height: 1; color: var(--text-3); }
+.nachbar-text { min-width: 0; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nachbar-text i { display: block; font-style: normal; font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase; color: var(--text-3); }
+
+/* Kapitelmarken */
+.marken-kopf { display: flex; gap: 8px; align-items: baseline; padding: 13px 16px 2px; font-size: 11px; letter-spacing: .11em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+.marken-kopf small { letter-spacing: 0; text-transform: none; font-weight: 400; }
+.kmarken { list-style: none; margin: 0; padding: 0 0 10px; }
+.kmarke { display: flex; gap: 12px; align-items: baseline; width: 100%; background: none; border: 0; color: inherit; font: inherit; padding: 9px 16px; cursor: pointer; text-align: left; }
+.kmarke:hover { background: var(--flaeche-hoch); }
+.kmarke.jetzt { color: var(--hoeren); }
+.kmarke.jetzt .kmarke-titel { font-weight: 600; }
+.kmarke-sek { flex: none; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; min-width: 38px; }
+.kmarke.jetzt .kmarke-sek { color: var(--hoeren); }
+.kmarke-titel { flex: 1; min-width: 0; font-size: 14px; }
+
+/* Zustandsmarke, auch außerhalb des Abspielers verwendet */
+.zustand-marke {
+  display: inline-flex; align-items: center; border-radius: 999px;
+  padding: 2px 9px; font-size: 11px; border: 1px solid var(--linie); color: var(--text-3);
+}
+.zustand-marke.z-angefangen { color: var(--hoeren); border-color: var(--hoeren); }
+.zustand-marke.z-gehoert { color: var(--hoeren); border-color: var(--hoeren); background: var(--hoeren-matt); }
+.zustand-marke.z-fragen_beantwortet { color: var(--geprueft); border-color: var(--geprueft); background: var(--geprueft-matt); }

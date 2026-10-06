@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TeachBuddy</title>
+<meta name="description" content="Bau dir deinen eigenen Kurs zu jedem Thema: Agenten recherchieren und belegen, heraus kommen Podcast-Folgen, Bilder, Mindmap und ein Gesprächspartner. Open Source, läuft auf dem eigenen Rechner.">
+<meta property="og:title" content="TeachBuddy">
+<meta property="og:description" content="Dein eigener Kurs zu jedem Thema — als Podcast. Mit Bildern, Mindmap, Gesprächspartner und einer Quelle hinter jeder Aussage.">
+<meta property="og:image" content="https://niclaseschner-ship-it.github.io/teachbuddy/bilder/01-podcast.webp">
+<link rel="icon" href="bilder/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700;6..72,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root {
+  --grund: #f6f1e7;
+  --flaeche: #fffdf8;
+  --tinte: #1b1f27;
+  --tinte-2: #4a4f5a;
+  --linie: #e4dccb;
+  --ocker: #b8761b;
+  --ocker-hell: #f1e2c4;
+  --terrakotta: #c4553b;
+  --petrol: #1f5c5a;
+  --code: #20242c;
+  --code-text: #f1ebdf;
+  --schatten: 0 18px 40px -22px rgba(52, 38, 14, .45);
+  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --grund: #16181d; --flaeche: #1f2229; --tinte: #f1ebdf; --tinte-2: #b8b2a6;
+    --linie: #333741; --ocker: #e0a04a; --ocker-hell: #3a2f1d; --terrakotta: #e07a60;
+    --petrol: #6fb3ae; --code: #0f1115; --code-text: #f1ebdf;
+    --schatten: 0 18px 40px -22px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --grund: #16181d; --flaeche: #1f2229; --tinte: #f1ebdf; --tinte-2: #b8b2a6;
+  --linie: #333741; --ocker: #e0a04a; --ocker-hell: #3a2f1d; --terrakotta: #e07a60;
+  --petrol: #6fb3ae; --code: #0f1115; --code-text: #f1ebdf;
+  --schatten: 0 18px 40px -22px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--grund); color: var(--tinte);
+  font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+img { max-width: 100%; height: auto; display: block; }
+:focus-visible { outline: 2px solid var(--ocker); outline-offset: 3px; border-radius: 4px; }
+
+.huelle { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+
+/* Kopf */
+.kopf { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
+.marke { font: 700 26px/1 var(--serif); letter-spacing: -.01em; text-decoration: none; }
+.marke::after { content: ""; display: block; width: 34px; height: 3px; background: var(--ocker); margin-top: 7px; }
+.kopf nav { display: flex; gap: 22px; font-size: 15px; color: var(--tinte-2); }
+.kopf nav a { text-decoration: none; }
+.kopf nav a:hover { color: var(--tinte); }
+@media (max-width: 640px) { .kopf nav a:not(.gh) { display: none; } }
+
+/* Bühne */
+.buehne { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 48px; align-items: center; padding-block: 40px 72px; }
+.buehne h1 {
+  font: 800 clamp(42px, 6.4vw, 78px)/1.0 var(--serif); letter-spacing: -.025em;
+  margin: 0 0 22px; text-wrap: balance;
+}
+.buehne h1 em { font-style: normal; color: var(--ocker); }
+.buehne .unter { font-size: 20px; color: var(--tinte-2); max-width: 34ch; margin: 0 0 30px; }
+.knoepfe { display: flex; flex-wrap: wrap; gap: 12px; }
+.knopf {
+  display: inline-flex; align-items: center; gap: 9px; padding: 13px 22px; border-radius: 999px;
+  font: 600 16px/1 var(--sans); text-decoration: none; border: 1.5px solid var(--tinte);
+}
+.knopf.voll { background: var(--tinte); color: var(--grund); }
+.knopf:hover { transform: translateY(-1px); }
+.fakten { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 30px; font-size: 14.5px; color: var(--tinte-2); }
+.fakten b { color: var(--tinte); font-weight: 600; }
+.welle { display: flex; gap: 4px; align-items: center; height: 28px; margin: 0 0 22px; }
+.welle i { width: 3px; border-radius: 2px; background: var(--ocker); opacity: .85; }
+
+.stapel { position: relative; aspect-ratio: 1122 / 1402; max-width: 440px; justify-self: center; width: 100%; }
+.stapel img { position: absolute; width: 78%; border-radius: 18px; box-shadow: var(--schatten); }
+.stapel img:nth-child(1) { left: 0; top: 6%; transform: rotate(-5deg); }
+.stapel img:nth-child(2) { right: 0; top: 0; transform: rotate(4deg); }
+@media (max-width: 860px) {
+  .buehne { grid-template-columns: 1fr; padding-block: 16px 48px; gap: 36px; }
+  .stapel { max-width: 360px; }
+}
+
+/* Abschnitte */
+section { padding-block: 64px; border-top: 1px solid var(--linie); }
+.zeile { font: 600 13px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ocker); margin: 0 0 14px; }
+h2 { font: 700 clamp(30px, 4vw, 44px)/1.08 var(--serif); letter-spacing: -.02em; margin: 0 0 16px; text-wrap: balance; max-width: 22ch; }
+.lead { color: var(--tinte-2); max-width: 62ch; margin: 0 0 34px; }
+
+/* Galerie */
+.galerie {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 300px); gap: 20px;
+  overflow-x: auto; scroll-snap-type: x mandatory; padding: 6px 2px 22px; margin-inline: -2px;
+  scrollbar-width: thin; scrollbar-color: var(--linie) transparent;
+}
+.galerie figure { margin: 0; scroll-snap-align: start; }
+.galerie img { border-radius: 16px; box-shadow: var(--schatten); background: var(--flaeche); }
+.galerie figcaption { margin-top: 14px; font-size: 15px; color: var(--tinte-2); }
+.galerie figcaption b { display: block; font: 700 19px/1.25 var(--serif); color: var(--tinte); margin-bottom: 3px; }
+
+/* Belegkette */
+.kette { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.glied { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 14px; padding: 18px 16px; position: relative; }
+.glied .art { font: 600 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--petrol); }
+.glied .id { font: 400 13px/1 var(--mono); color: var(--tinte-2); margin: 8px 0 10px; }
+.glied p { margin: 0; font-size: 14.5px; line-height: 1.5; }
+.glied.zitat p { font-family: var(--serif); font-style: italic; }
+.glied:not(:last-child)::after {
+  content: "→"; position: absolute; right: -11px; top: 50%; transform: translateY(-50%);
+  color: var(--ocker); font-weight: 600; background: var(--grund); line-height: 1;
+}
+@media (max-width: 900px) {
+  .kette { grid-template-columns: 1fr; }
+  .glied:not(:last-child)::after { content: "↓"; right: auto; left: 22px; top: auto; bottom: -15px; transform: none; padding: 0 4px; }
+}
+.anmerkung { font-size: 14px; color: var(--tinte-2); margin-top: 18px; }
+
+/* Ablauf */
+.ablauf { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 26px 22px; counter-reset: schritt; }
+.ablauf li { counter-increment: schritt; border-top: 2px solid var(--tinte); padding-top: 14px; }
+.ablauf li::before { content: counter(schritt, decimal-leading-zero); font: 400 13px/1 var(--mono); color: var(--ocker); }
+.ablauf h3 { font: 700 21px/1.2 var(--serif); margin: 8px 0 6px; }
+.ablauf p { margin: 0; font-size: 15px; color: var(--tinte-2); }
+.ablauf .wer { display: inline-block; margin-top: 10px; font: 400 12.5px/1 var(--mono); color: var(--petrol); }
+
+/* Lernpfade */
+.pfade { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.pfad { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 18px; padding: 26px; }
+.pfad h3 { font: 700 24px/1.15 var(--serif); margin: 0 0 8px; }
+.pfad p { margin: 0 0 18px; color: var(--tinte-2); font-size: 15.5px; }
+.pfad ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.pfad li { font-size: 13.5px; padding: 6px 12px; border-radius: 999px; background: var(--ocker-hell); }
+.zahlen { display: flex; flex-wrap: wrap; gap: 14px 44px; margin-top: 34px; }
+.zahlen div { font-size: 14px; color: var(--tinte-2); }
+.zahlen b { display: block; font: 800 40px/1 var(--serif); color: var(--tinte); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+
+/* Schnellstart */
+.start { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 40px; align-items: start; }
+@media (max-width: 860px) { .start { grid-template-columns: 1fr; } }
+.konsole { background: var(--code); color: var(--code-text); border-radius: 16px; overflow: hidden; }
+.konsole .leiste { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.08); font: 400 12.5px/1 var(--mono); color: #a7a090; }
+.konsole button { font: 600 12.5px/1 var(--sans); color: var(--code-text); background: rgba(255,255,255,.08); border: 0; border-radius: 6px; padding: 7px 11px; cursor: pointer; }
+.konsole pre { margin: 0; padding: 18px 20px 22px; overflow-x: auto; font: 400 14px/1.75 var(--mono); }
+.konsole .k { color: #8f8a7e; }
+.liste-klein { margin: 0; padding-left: 20px; color: var(--tinte-2); font-size: 15.5px; }
+.liste-klein li { margin-bottom: 8px; }
+.liste-klein code { font: 400 13.5px var(--mono); background: var(--ocker-hell); padding: 1px 6px; border-radius: 5px; color: var(--tinte); }
+
+/* Fuß */
+.fuss { border-top: 1px solid var(--linie); padding-block: 36px 48px; font-size: 14px; color: var(--tinte-2); display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
+.fuss a { color: var(--tinte); }
+</style>
+</head>
+<body>
+<div class="huelle">
+  <header class="kopf">
+    <a class="marke" href="#">TeachBuddy</a>
+    <nav>
+      <a href="#galerie">Was entsteht</a>
+      <a href="#belege">Belege</a>
+      <a href="#start">Einrichten</a>
+      <a class="gh" href="https://github.com/niclaseschner-ship-it/teachbuddy">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="buehne">
+      <div>
+        <div class="welle" aria-hidden="true"></div>
+        <h1>Dein eigener Kurs zu jedem Thema — <em>als Podcast.</em></h1>
+        <p class="unter">Agenten recherchieren, belegen und prüfen gegen. Heraus kommen Folgen zum Hören, Bilder, eine Mindmap und ein Gesprächspartner — und hinter jeder Aussage ihre Quelle.</p>
+        <div class="knoepfe">
+          <a class="knopf voll" href="https://github.com/niclaseschner-ship-it/teachbuddy">Auf GitHub ansehen</a>
+          <a class="knopf" href="#start">Einrichten</a>
+        </div>
+        <div class="fakten">
+          <span><b>Open Source</b> · Apache-2.0</span>
+          <span><b>Läuft lokal</b> · auch auf einem Raspberry Pi</span>
+          <span><b>Installierbar</b> · offline lernen</span>
+        </div>
+      </div>
+      <div class="stapel" aria-hidden="true">
+        <img src="bilder/02-grafik.webp" alt="" width="1122" height="1402">
+        <img src="bilder/01-podcast.webp" alt="" width="1122" height="1402">
+      </div>
+    </div>
+
+    <section id="galerie">
+      <p class="zeile">Was dabei herauskommt</p>
+      <h2>Sechs Wege in dasselbe Wissen.</h2>
+      <p class="lead">Jede Wissenseinheit wird nur einmal geschrieben und dann so ausgespielt, wie du sie gerade aufnehmen kannst: hörend im Zug, schauend auf dem Sofa, sprechend beim Spaziergang. Die App läuft auf deinem Rechner und lässt sich aufs Telefon installieren.</p>
+      <div class="galerie" tabindex="0" aria-label="Produktbilder, seitlich scrollbar">
+        <figure><img src="bilder/01-podcast.webp" alt="Abspieler mit Kapitelmarken, Tempo und Übersichtsfolie" width="1122" height="1402" loading="lazy">
+          <figcaption><b>Podcast je Lektion</b>Moderator und Gast, fünf bis zehn Minuten, mit Kapitelmarken, Tempo und Offline-Speicher.</figcaption></figure>
+        <figure><img src="bilder/02-grafik.webp" alt="Lektionsbild zu Prompt Injection" width="1122" height="1402" loading="lazy">
+          <figcaption><b>Ein Bild, das erklärt</b>Zu jeder Lektion eine Infografik, die die Zusammenhänge auf einen Blick zeigt.</figcaption></figure>
+        <figure><img src="bilder/03-interviewer.webp" alt="Gesprächskarte zum Kapitel" width="1122" height="1402" loading="lazy">
+          <figcaption><b>Ein Gesprächspartner</b>Sprich in Echtzeit über das Kapitel: Er fragt, erklärt noch einmal und schlägt nach.</figcaption></figure>
+        <figure><img src="bilder/04-lernpfad.webp" alt="Lernpfad mit Kapiteln und Fortschritt" width="1122" height="1402" loading="lazy">
+          <figcaption><b>Dein Lernpfad</b>Kapitel und Lektionen, die aufeinander aufbauen, mit sichtbarem Fortschritt.</figcaption></figure>
+        <figure><img src="bilder/05-mindmap.webp" alt="Mindmap eines Kapitels" width="1122" height="1402" loading="lazy">
+          <figcaption><b>Das Ganze sehen</b>Die Mindmap gliedert alle Wissenseinheiten eines Kapitels nach Leitfragen.</figcaption></figure>
+        <figure><img src="bilder/06-quellen.webp" alt="Beleg mit Zitat und Quelle" width="1122" height="1402" loading="lazy">
+          <figcaption><b>Wissen mit Quellen</b>Von der Aussage zum wörtlichen Zitat und zur Fundstelle — auch offline.</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="belege">
+      <p class="zeile">Belegt, nicht behauptet</p>
+      <h2>Hinter jeder Aussage eine Kette bis zur Quelle.</h2>
+      <p class="lead">TeachBuddy trennt, was eine Quelle sagt, von dem, was daraus folgt. So lässt sich ein Deutungsfehler von einem Zitierfehler unterscheiden — und was keine Quelle trägt, steht als Einordnung markiert da. Ein echtes Beispiel aus der Demo — eine Aussage, die erst die Gegenprobe richtiggestellt hat:</p>
+      <div class="kette">
+        <div class="glied"><div class="art">Quelle</div><div class="id">Q-0048</div><p>Verordnung (EU) 2023/2854 (Data Act), amtlicher Text, Weiterverwendung erlaubt</p></div>
+        <div class="glied zitat"><div class="art">Fundstelle</div><div class="id">F-0048-07 · Art. 25 Abs. 4</div><p>„Where the mandatory maximum transitional period … is technically unfeasible, the provider … shall … indicate an alternative transitional period, which shall not exceed seven months.“</p></div>
+        <div class="glied"><div class="art">Beleg</div><div class="id">B-0048-07 · Zuversicht hoch</div><p>Ist die 30-Tage-Frist technisch nicht machbar, muss der Anbieter das binnen 14 Arbeitstagen begründen und eine Ersatzfrist von höchstens sieben Monaten nennen.</p></div>
+        <div class="glied"><div class="art">Wissenseinheit</div><div class="id">WE-0217 · Wechselfrist</div><p>30 Tage als Regel, sieben Monate als begründete Ausnahme, einmal Verlängerung auf Wunsch des Kunden.</p></div>
+        <div class="glied"><div class="art">Lektion</div><div class="id">L-H6 · Anbieterbindung und Ausstieg</div><p>Folge, Bild und Übersichtsfolie; jede Kernaussage führt zu ihrem Beleg.</p></div>
+      </div>
+      <p class="anmerkung">Vorher stand dort „30 Tage, verbindliche Obergrenze“. Die Gegenprobe hat das beanstandet, die Korrektur ist an der Quelle nachgeprüft — und dokumentiert.</p>
+    </section>
+
+    <section>
+      <p class="zeile">Wie dein Kurs entsteht</p>
+      <h2>Du sagst, was du lernen willst. Die Agenten bauen es — belegt. Du gibst frei.</h2>
+      <p class="lead">Eine Warteschlange arbeitet Kapitel für Kapitel ab, über die Kommandozeilen von Claude Code und Codex. Zwei Modelle mit getrennten Rollen, damit keins seinen eigenen Text prüft. Was dabei entsteht, liegt als Änderung in deiner Bibliothek; gültig wird es erst mit deinem Commit.</p>
+      <ol class="ablauf">
+        <li><h3>Recherche</h3><p>Quellen mit Lizenz und Abrufdatum, Fundstellen mit wörtlichem Zitat.</p><span class="wer">claude</span></li>
+        <li><h3>Wissen</h3><p>Wissenseinheiten mit Belegen. Was das Material nicht trägt, wird als Lücke gemeldet.</p><span class="wer">claude</span></li>
+        <li><h3>Gegenprobe</h3><p>Das andere Modell prüft jede Aussage gegen ihren Beleg.</p><span class="wer">codex</span></li>
+        <li><h3>Podcast</h3><p>Skript, Belegprobe, Vertonung mit zwei Stimmen, Kapitelmarken.</p><span class="wer">codex · Azure TTS</span></li>
+        <li><h3>Bild und Mindmap</h3><p>Strukturanalyse, dann Infografik je Lektion; Gliederung je Kapitel.</p><span class="wer">codex · claude</span></li>
+        <li><h3>Freigabe</h3><p>Beanstandungen einarbeiten, Diff ansehen, committen. Erst dann gilt es.</p><span class="wer">du</span></li>
+      </ol>
+    </section>
+
+    <section>
+      <p class="zeile">Die Demo</p>
+      <h2>Ein fertiges Kapitel, um zu sehen, was entsteht.</h2>
+      <p class="lead">Mitgeliefert ist ein Kapitel aus einem Kurs über KI in der Praxis — mit TeachBuddy gebaut, gegengeprüft und nachgebessert.</p>
+      <div class="pfade">
+        <div class="pfad">
+          <h3>Datenhoheit und Souveränität</h3>
+          <p>Wohin Daten bei KI-Diensten gehen, wer darauf trainiert, was Verträge regeln und wie man wieder herauskommt.</p>
+          <ul><li>Verarbeitungsort</li><li>Training auf Kundendaten</li><li>Auftragsverarbeitung</li><li>Offene Modelle</li><li>Wechsel nach Data Act</li></ul>
+        </div>
+        <div class="pfad">
+          <h3>Was du brauchst</h3>
+          <p><b>Zum Lernen:</b> Python — sonst nichts.<br><b>Fürs Gespräch:</b> einen OpenAI-Schlüssel.<br><b>Für eigene Kurse:</b> Claude Code und Codex (Abo oder Schlüssel), Azure-TTS, ffmpeg.</p>
+          <ul><li>jeder Baustein austauschbar</li><li>läuft auch auf einem Raspberry Pi</li></ul>
+        </div>
+      </div>
+      <div class="zahlen">
+        <div><b>8</b>Lektionen</div>
+        <div><b>31</b>Wissenseinheiten</div>
+        <div><b>43</b>Belege</div>
+        <div><b>10</b>Beanstandungen eingearbeitet</div>
+      </div>
+    </section>
+
+    <section id="start">
+      <div class="start">
+        <div>
+          <p class="zeile">Einrichten</p>
+          <h2>Sag deinem Coding-Agenten: „Richte TeachBuddy ein.“</h2>
+          <ul class="liste-klein">
+            <li>Im Repo liegt ein Skill für Claude Code und Codex. Er klärt einmal, was du vorhast und welche Zugänge du hast, und führt dann durch alles.</li>
+            <li>Installation, Demo, deine eigene Bibliothek, der erste Kurs bis zur Freigabe.</li>
+            <li>Betrieb fürs Telefon: im WLAN mit Zugangscode, unterwegs über HTTPS.</li>
+            <li>Lieber von Hand? <a href="https://github.com/niclaseschner-ship-it/teachbuddy/blob/main/docs/eigener-lernpfad.md">Die Anleitung</a>.</li>
+          </ul>
+        </div>
+        <div class="konsole">
+          <div class="leiste"><span>Terminal</span><button type="button" id="kopieren">Kopieren</button></div>
+<pre id="befehle"><span class="k"># holen und einrichten</span>
+git clone https://github.com/niclaseschner-ship-it/teachbuddy.git
+cd teachbuddy
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e .
+python start.py --pruefen
+
+<span class="k"># die Demo starten → http://127.0.0.1:5089/</span>
+python start.py --audio
+
+<span class="k"># oder gleich den Agenten fragen</span>
+claude "Richte TeachBuddy ein"</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="fuss">
+    <span>Code: <a href="https://github.com/niclaseschner-ship-it/teachbuddy/blob/main/LICENSE">Apache-2.0</a> · Demo-Inhalte: <a href="https://github.com/niclaseschner-ship-it/teachbuddy/blob/main/demo/LIZENZ.md">CC BY 4.0</a></span>
+    <span>Stimmen und Lektionsbilder sind KI-erzeugt.</span>
+  </footer>
+</div>
+<script>
+// Die Tonwelle über der Überschrift, wie auf den Produktbildern.
+(function () {
+  const welle = document.querySelector('.welle');
+  const hoehen = [6, 10, 16, 9, 22, 14, 26, 12, 18, 8, 24, 15, 11, 20, 7, 13, 5];
+  for (const h of hoehen) {
+    const i = document.createElement('i');
+    i.style.height = h + 'px';
+    welle.appendChild(i);
+  }
+})();
+// Befehle kopieren — ohne die Kommentarzeilen.
+document.getElementById('kopieren').addEventListener('click', async (e) => {
+  const text = document.getElementById('befehle').innerText
+    .split('\n').filter((z) => z.trim() && !z.trim().startsWith('#')).join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    e.target.textContent = 'Kopiert';
+  } catch {
+    const r = document.createRange();
+    r.selectNodeContents(document.getElementById('befehle'));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    e.target.textContent = 'Markiert';
+  }
+  setTimeout(() => { e.target.textContent = 'Kopieren'; }, 1800);
+});
+</script>
+</body>
+</html>

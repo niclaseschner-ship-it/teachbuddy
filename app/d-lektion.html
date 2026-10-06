@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lektion — Abspieler, Bild und Folie · TeachBuddy</title>
+<!-- Installierbar als Vollbild-PWA. -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#b57722">
+<script src="./app-installieren.js" data-name="TeachBuddy" defer></script>
+<!-- iOS beachtet das Manifest nur halb: Ohne diese drei Zeilen startet die
+     App auf dem iPhone weiter im Safari-Rahmen. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TeachBuddy">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+
+<link rel="stylesheet" href="./stil.css">
+<link rel="stylesheet" href="./abspieler.css">
+<style>
+  .l-kopf { margin-bottom: 18px; }
+  .l-weg { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-3); margin-bottom: 5px; }
+  .l-weg a { color: var(--text-3); text-decoration: none; }
+  .l-weg a:hover { color: var(--fokus); }
+  .l-h1 { font-family: var(--serif); font-size: 25px; line-height: 1.22; margin: 0; font-weight: 600; overflow-wrap: break-word; }
+
+  .raster { display: grid; gap: 22px; align-items: start; }
+  /* Rasterkinder schrumpfen sonst nicht unter ihre Mindestbreite (min-width:auto)
+     und spreizen die Spalte, bis der Inhalt abgeschnitten wird. */
+  .raster > * { min-width: 0; }
+  @media (min-width: 900px) { .raster { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 26px; } }
+
+  .karte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--r); overflow: hidden; }
+  .karte + .karte { margin-top: 18px; }
+  .karte-kopf { display: flex; align-items: baseline; gap: 8px; padding: 13px 16px 0; }
+  .karte-kopf h2 { margin: 0; flex: 1; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+  .karte-kopf small { color: var(--text-3); font-size: 12px; }
+
+  /* --- Folie: Kernaussagen je Wissenseinheit (POD-13) --- */
+  .fe-liste { list-style: none; margin: 0; padding: 4px 0 6px; }
+  .fe { padding: 13px 16px 14px; }
+  .fe + .fe { border-top: 1px solid var(--linie-zart); }
+  .fe-kopf { display: flex; align-items: baseline; gap: 9px; margin-bottom: 5px; }
+  .fe-stichwort { font-size: 11.5px; letter-spacing: .085em; text-transform: uppercase;
+    font-weight: 600; color: var(--text-3); }
+  .fe-grad { font-size: 10.5px; color: var(--text-3); opacity: .7; }
+  .fe-kern { margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500; }
+  .fe-fuss { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+  .fe-mehr { margin-top: 9px; }
+  .fe-mehr > summary { display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 12.5px; color: var(--text-2); list-style: none; padding: 3px 0; }
+  .fe-mehr > summary::-webkit-details-marker { display: none; }
+  .fe-mehr > summary::before { content: '▸'; color: var(--text-3); font-size: 10px; }
+  .fe-mehr[open] > summary::before { content: '▾'; }
+  .fe-mehr-zahl { color: var(--text-3); font-size: 11.5px; }
+  .fe-kurz { margin: 6px 0 2px; font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+  .fe-mehr .punkte { padding: 2px 0 0; }
+  .fe-mehr .punkt { padding: 9px 0; border-left: 0; }
+  .fe-mehr .punkt + .punkt { border-top: 1px dashed var(--linie-zart); }
+
+  .punkte { list-style: none; margin: 0; padding: 8px 0 10px; }
+  .punkt { padding: 11px 16px; border-left: 3px solid transparent; }
+  .punkt + .punkt { border-top: 1px solid var(--linie-zart); }
+  .punkt-text { font-size: 14.5px; line-height: 1.5; }
+  .punkt-fuss { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
+  .punkt.strittig { border-left-color: var(--strittig); }
+  .punkt.einordnung { border-left-color: var(--linie); }
+  .punkt.einordnung .punkt-text { color: var(--text-2); font-style: italic; }
+  /* OBF-17: Belegtes und Unbelegtes sind unterscheidbar. `unbelegt` heißt:
+     Der Absatz trägt im Material weder Beleg noch [E] — ein Mangel am
+     Material (BIB-11), nicht eine Einordnung. Bis zum 13.09.2026 sah er aus
+     wie ein belegter Punkt; 270 Absätze der Bibliothek betrifft das. */
+  .punkt.unbelegt { border-left-color: var(--strittig); }
+  .punkt.unbelegt .punkt-text { color: var(--text-2); }
+
+  .pille { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 9px; font-size: 11.5px; line-height: 1.35; border: 1px solid transparent; }
+  .p-beleg { background: none; border-color: var(--linie); color: var(--beleg); cursor: pointer; font: inherit; font-size: 11.5px; }
+  .p-beleg:hover { border-color: var(--beleg); }
+  .p-strittig { background: var(--strittig-matt); color: var(--strittig); font-weight: 600; }
+  .p-einordnung { border-color: var(--linie); color: var(--text-3); }
+  .p-unbelegt { border-color: var(--strittig); color: var(--strittig); }
+
+  /* --- Fragen --- */
+  .frage { padding: 14px 16px; }
+  .frage + .frage { border-top: 1px solid var(--linie-zart); }
+  .frage-text { font-size: 14.5px; line-height: 1.5; margin-bottom: 10px; }
+  .frage textarea { width: 100%; min-height: 74px; resize: vertical; background: var(--bg); color: var(--text); border: 1px solid var(--linie); border-radius: var(--r-klein); padding: 10px 11px; font: inherit; font-size: 14px; }
+  .frage textarea:focus { outline: 2px solid var(--fokus); outline-offset: -1px; border-color: transparent; }
+  .frage-fuss { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 9px; }
+  .tun { background: var(--hoeren); color: #15171c; border: 0; border-radius: var(--r-klein); padding: 8px 14px; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .tun[disabled] { opacity: .45; cursor: not-allowed; }
+  .fein { font-size: 12px; color: var(--text-3); }
+
+  .offen-marke { margin: 10px 16px 14px; border-left: 3px solid var(--strittig); background: var(--flaeche-hoch); border-radius: var(--r-klein); padding: 11px 13px; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+  .offen-marke b { color: var(--strittig); }
+  .offen-marke button { margin-top: 8px; background: none; border: 1px solid var(--linie); color: var(--text-2); border-radius: 999px; padding: 4px 11px; font: inherit; font-size: 12px; cursor: pointer; }
+  .musterantwort { margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--linie); color: var(--text-2); font-size: 13px; line-height: 1.5; }
+
+  /* --- Rückmeldung je Einheit (OBF-19) --- */
+
+  .rm-arten { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 12px; }
+  .rm-art { border: 1px solid var(--linie); background: none; color: var(--text-2);
+    border-radius: 999px; padding: 6px 13px; font: inherit; font-size: 13px; cursor: pointer; }
+  .rm-art[aria-pressed="true"] { border-color: var(--hoeren); color: var(--text);
+    background: var(--flaeche-hoch); font-weight: 600; }
+  .rm-stand { font-size: 12px; color: var(--text-3); margin: 0 0 12px; line-height: 1.5; }
+
+  /* --- Fassung der Pipeline (AUF-18a) --- */
+  .fassung { margin: 2px 16px 14px; border-top: 1px solid var(--linie-zart); padding-top: 11px; }
+  .fassung > summary { display: flex; align-items: center; gap: 9px; cursor: pointer;
+    list-style: none; }
+  .fassung > summary::-webkit-details-marker { display: none; }
+  .fassung-kopf { font-size: 12.5px; color: var(--text-2); }
+  .fassung-marke { font-size: 11px; border-radius: 999px; padding: 2px 8px; }
+  .f-aktuell { color: var(--hoeren); border: 1px solid var(--hoeren); }
+  .f-alt { color: var(--text-3); border: 1px solid var(--linie); }
+  .fassung-alt { font-size: 12px; color: var(--text-3); }
+  .fassung-satz { margin: 10px 0 4px; font-size: 12.5px; color: var(--text-3); }
+  .fassung-liste { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55;
+    color: var(--text-2); }
+  .fassung-liste li + li { margin-top: 5px; }
+  .fassung-regeln { margin: 9px 0 0; font-size: 11.5px; color: var(--text-3); }
+
+  /* --- Belegblatt --- */
+  .blatt { position: fixed; inset: 0; z-index: 90; background: rgba(8,9,12,.72); display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 720px) { .blatt { align-items: center; } }
+  .blatt-innen { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--r) var(--r) 0 0; width: 100%; max-width: 560px; max-height: 84vh; overflow: auto; padding: 18px 18px max(18px, env(safe-area-inset-bottom)); }
+  @media (min-width: 720px) { .blatt-innen { border-radius: var(--r); } }
+  .blatt-kopf { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .blatt-kopf h3 { margin: 0; flex: 1; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+  .zitat { border-left: 3px solid var(--beleg); padding: 2px 0 2px 13px; margin: 0 0 12px; font-size: 14.5px; line-height: 1.55; }
+  .zeile { display: flex; gap: 10px; font-size: 13px; padding: 5px 0; border-top: 1px solid var(--linie-zart); }
+  .zeile dt { flex: none; width: 92px; color: var(--text-3); }
+  .zeile dd { margin: 0; flex: 1; min-width: 0; }
+  .zeile a { color: var(--fokus); word-break: break-all; }
+  .fehlt { background: var(--flaeche-hoch); border-radius: var(--r-klein); padding: 12px 14px; font-size: 13.5px; color: var(--text-2); line-height: 1.55; }
+</style>
+</head>
+<body>
+<div class="huelle" id="app">lädt…</div>
+
+<script type="module">
+import { bildKarte } from './bildschau.js';
+import { ikon } from './huelle.js';
+import { bildVon, abspielerHtml, abspielerStarten, zustandMarke } from './abspieler.js';
+
+const roh = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// Die Bibliothek schreibt Hervorhebungen als Markdown (`**so**`). Sie roh
+// stehen zu lassen ist kein Beleg von Treue, sondern unaufgeraeumt; mehr als
+// Fettung wird aber nicht uebersetzt.
+const fett = (t) => roh(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+// Seit 11.09.2026 vom Dienst statt aus der Vertragsdatei. Welche Lektion,
+// steht in der Adresse (?l=L-F01); ohne Angabe die erste, die es gibt.
+const BASIS = new URL('./', import.meta.url);
+const weg = (p) => new URL(String(p).replace(/^\/+/, ''), BASIS).pathname;
+
+// Alle Pfade, dann den, der das gesuchte Kapitel führt (13.09.2026).
+const _alle = (await (await fetch(weg('api/lernpfade'))).json()).lernpfade || [];
+const _gesucht = new URLSearchParams(location.search).get('k');
+const pfad = _alle.find((p) => (p.kapitel || []).some((k) => k.id === _gesucht))
+          || _alle.find((p) => (p.kapitel || []).length) || _alle[0];
+const wunsch = new URLSearchParams(location.search).get('l');
+const ersteLektion = pfad.kapitel.flatMap((k) => k.lektionen || [])[0];
+const gewaehlt = wunsch || ersteLektion?.id;
+if (!gewaehlt) {
+  document.body.innerHTML = '<main style="padding:2rem">Es gibt noch keine Lektion. '
+    + 'Sie entsteht aus einem Podcastlauf.</main>';
+  throw new Error('keine Lektion');
+}
+const L = await (await fetch(weg(`api/lektion/${encodeURIComponent(gewaehlt)}`))).json();
+const K = pfad.kapitel.find((k) => k.id === L.kapitel_id) || { lektionen: [] };
+const stelle = K.lektionen.findIndex((l) => l.id === L.id);
+const vorige = K.lektionen[stelle - 1] || null;
+const naechste = K.lektionen[stelle + 1] || null;
+
+// Vertrag v2 liefert die Belege ausgeschrieben mit der Lektion (R-5) — kein
+// Nachladen, also auch im Zug erreichbar. Genau darum ging es.
+const belegDetails = L.belege || {};
+const quellen = Object.fromEntries((L.quellen || []).map((q) => [q.id, q]));
+
+// Achtung: `L.fragen` ist in v2 der **Zustand** (offen | teilweise | fertig),
+// keine Liste. Ein String hat auch eine `.length` — deshalb wird hier auf Array
+// geprueft und nicht auf Wahrheit. Genau daran haengt die Seite am 11.09.2026
+// haengengeblieben.
+const fragenAusDienst = Array.isArray(L.fragenblock) ? L.fragenblock
+                      : Array.isArray(L.fragen) ? L.fragen : null;
+const fragenBlock = fragenAusDienst ?? [];
+
+/** Die Folie nach Wissenseinheiten gliedern — Kernaussage oben, Prosa weg.
+ *
+ * Das wurde zweimal gemeldet. Am 11.09.2026: „etwas viel Text auf der
+ * Player-Seite". Am 13.09.2026 nochmal, nach der Gruppierung nach
+ * Kapitelmarken: „aktuell ist es eine ganze Textwand" — und er hat
+ * beschrieben, was er stattdessen will: „knapper strukturierter Text,
+ * uebersichtlich die wichtigsten Inhalte der Folge, zum Ausklappen Nachweise
+ * und mehr wenn gewuenscht."
+ *
+ * **Die erste Reparatur hat an der falschen Schicht gearbeitet.** Gruppieren
+ * hilft nicht, wenn jeder einzelne Punkt ein Absatz ist: `folie_punkte` sind
+ * die Absaetze des Einheiten-Inhalts, also der Volltext. Gemessen an L-H3:
+ * 15 Punkte, im Mittel 38 Woerter, zusammen 593 Woerter. Das ist eine
+ * Textwand, auch schoen sortiert.
+ *
+ * **Der Kopf einer Einheit ist laengst modelliert**, er wurde nur nicht
+ * gezeigt: `stichwort` (zwei bis vier Woerter, E-24), `titel` (die Behauptung
+ * als ein Satz, rund zwanzig Woerter) und `kurzfassung`. Damit ist die Folie
+ * eine Stichwortunterlage, wie POD-13 sie verlangt, **ohne dass etwas erzeugt
+ * wird** — der Dienst gibt seit dem 13.09. nur heraus, was die Bibliothek
+ * ohnehin fuehrt.
+ *
+ * Sichtbar bleibt: Stichwort, Kernaussage, Belegpillen (POD-5a verlangt sie
+ * sichtbar je Kernaussage, POD-14 den Verweis). Weggeklappt wird die Prosa.
+ */
+function folieNachEinheiten() {
+  const koepfe = L.einheiten || [];
+  if (!koepfe.length) return folieNachAbschnitten();   // aelterer Dienst
+  const punkteVon = (id) =>
+    (L.folie_punkte || []).filter((p) => p.wissenseinheit === id);
+
+  return `<ol class="fe-liste">${koepfe.map((e) => {
+    const eigene = punkteVon(e.id);
+    const woerter = eigene.reduce((n, p) => n + p.text.split(/\s+/).length, 0);
+    return `
+    <li class="fe">
+      <div class="fe-kopf">
+        <span class="fe-stichwort">${roh(e.stichwort || e.id)}</span>
+        ${e.grad ? `<span class="fe-grad">${roh(e.grad)}</span>` : ''}
+      </div>
+      <p class="fe-kern">${fett(e.titel || '')}</p>
+      <div class="fe-fuss">
+        ${(e.belege || []).map((b) =>
+          `<button class="pille p-beleg" data-beleg="${b}">Beleg ${roh(b)}</button>`).join('')}
+      </div>
+      ${eigene.length ? `<details class="fe-mehr">
+        <summary>mehr lesen<span class="fe-mehr-zahl">${woerter} Wörter</span></summary>
+        ${e.kurzfassung ? `<p class="fe-kurz">${fett(e.kurzfassung)}</p>` : ''}
+        <ul class="punkte">${eigene.map(punktHtml).join('')}</ul>
+      </details>` : ''}
+    </li>`;
+  }).join('')}</ol>`;
+}
+
+/** Wann die Folge entstand und was schon in ihr steckt (AUF-18a).
+ *
+ * Rückmeldung vom 13.09.2026: „sag mir auch, wann die Folge gemacht wurde bzw. welche
+ * Verbesserungen sie schon drin hat." Der Anlass ist praktisch: An einem Tag
+ * sind drei Nachbesserungen an der Sprache gelaufen, und danach lagen Folgen
+ * aus drei Staenden im Regal. Ohne diese Zeile ist beim Hoeren nicht zu
+ * sagen, welchen man hoert — und eine Rueckmeldung dazu nicht zu deuten.
+ *
+ * Steht die Folge nicht auf der jetzigen Fassung, sagt die Zeile das. Sie
+ * draengt aber nicht zum Neubau: POD-16a haelt fest, dass gutes Vorhandenes
+ * nicht entwertet wird, nur weil es neuere Regeln gibt.
+ */
+function fassungsZeile() {
+  const p = L.pipeline;
+  if (!p) return '';
+  const tag = p.erzeugt ? new Date(p.erzeugt).toLocaleDateString('de-DE',
+    { day: 'numeric', month: 'long', year: 'numeric' }) : 'unbekannt';
+  if (!p.nummer) {
+    return `<div class="fassung">
+      <span class="fassung-kopf">Gebaut am ${roh(tag)}</span>
+      <span class="fassung-alt">${roh(p.hinweis || '')}</span>
+    </div>`;
+  }
+  return `<details class="fassung">
+    <summary>
+      <span class="fassung-kopf">Fassung ${p.nummer} · ${roh(tag)}</span>
+      ${p.aktuell
+        ? '<span class="fassung-marke f-aktuell">aktueller Stand</span>'
+        : `<span class="fassung-marke f-alt">jetzt ist ${p.jetzige}</span>`}
+    </summary>
+    <p class="fassung-satz">Was in dieser Folge schon steckt:</p>
+    <ul class="fassung-liste">
+      ${(p.was || []).map((w) => `<li>${roh(w)}</li>`).join('')}
+    </ul>
+    ${(p.regeln || []).length
+      ? `<p class="fassung-regeln">${p.regeln.map(roh).join(' · ')}</p>` : ''}
+  </details>`;
+}
+
+/** Der Rueckfall fuer einen Dienst ohne `einheiten` im Vertrag. */
+function folieNachAbschnitten() {
+  const punkte = L.folie_punkte || [];
+  const marken = (L.kapitelmarken || []).filter((m) => m.art !== 'einleitung');
+  if (punkte.length <= 12 || marken.length < 2) {
+    return `<ul class="punkte">${punkte.map(punktHtml).join('')}</ul>`;
+  }
+  const proAbschnitt = Math.ceil(punkte.length / marken.length);
+  return marken.map((m, i) => {
+    const teil = punkte.slice(i * proAbschnitt, (i + 1) * proAbschnitt);
+    if (!teil.length) return '';
+    return `<details class="folie-teil"${i === 0 ? ' open' : ''}>
+      <summary><span class="ft-zeit">${mmssKurz(m.sek)}</span>
+        <span class="ft-titel">${roh(m.titel)}</span>
+        <span class="ft-zahl">${teil.length}</span></summary>
+      <ul class="punkte">${teil.map(punktHtml).join('')}</ul>
+    </details>`;
+  }).join('');
+}
+
+const mmssKurz = (s) => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
+
+const artPille = {
+  strittig: '<span class="pille p-strittig">strittig</span>',
+  einordnung: '<span class="pille p-einordnung">Einordnung, nicht belegt</span>',
+  // OBF-17 und TB-8: sagen, was fehlt, statt es aussehen zu lassen wie belegt.
+  unbelegt: '<span class="pille p-unbelegt">ohne Kennzeichnung im Material</span>',
+};
+
+const punktHtml = (p) => `
+  <li class="punkt ${p.art}">
+    <div class="punkt-text">${fett(p.text)}</div>
+    <div class="punkt-fuss">
+      ${artPille[p.art] || ''}
+      ${(p.belege || []).map((b) => `<button class="pille p-beleg" data-beleg="${b}">Beleg ${roh(b)}</button>`).join('')}
+    </div>
+  </li>`;
+
+const frageHtml = (f, i) => `
+  <div class="frage" data-frage="${f.id}">
+    <div class="frage-text"><b>${i + 1}.</b> ${roh(f.frage)}</div>
+    <textarea placeholder="Deine Antwort in eigenen Worten…"></textarea>
+    <div class="frage-fuss">
+      <button class="tun" disabled>Antwort abschicken</button>
+      <span class="fein">die Bewertung kommt vom Server (R-8)</span>
+    </div>
+    <div class="offen-marke">
+      <b>Offene Entscheidung E-17.</b> Die Musterantwort liegt bereits im
+      Lektionspaket, also auch offline. Ob sie sofort zum Selbstvergleich
+      erscheint oder erst nach der echten Bewertung, ist nicht entschieden.
+      <button data-muster="${f.id}">Variante „sofort zeigen“ ansehen</button>
+      <div class="musterantwort" hidden>${roh(f.musterantwort)}</div>
+    </div>
+  </div>`;
+
+document.getElementById('app').innerHTML = `
+  <header class="l-kopf">
+    <div class="l-weg">
+      <a href="./uebersicht.html">← Übersicht</a>
+      <span>·</span>
+      <a href="./e-kapitel.html">Kapitel ${K.nummer}: ${roh(K.titel)}</a>
+      <span>·</span>
+      <span>Lektion ${stelle + 1} von ${K.lektionen.length}</span>
+      ${zustandMarke(L)}
+    </div>
+    <h1 class="l-h1">${roh(L.titel)}</h1>
+  </header>
+
+  <div class="raster">
+    <div>
+      <section class="karte">
+        ${abspielerHtml(L, { vorige, naechste, kapitel: K })}
+      </section>
+    </div>
+
+    <div>
+      <section class="karte">
+        <div class="karte-kopf"><h2>Übersichtsfolie</h2><small>${
+          (L.einheiten || []).length
+            ? `${L.einheiten.length} Kernaussagen`
+            : `${L.folie_punkte.length} Punkte`}</small></div>
+        ${folieNachEinheiten()}
+        ${fassungsZeile()}
+      </section>
+
+      <section class="karte" id="fragen">
+        <div class="karte-kopf"><h2>Fragen zur Lektion</h2><small>${fragenBlock.length} Stück</small></div>
+        ${fragenBlock.map(frageHtml).join('')}
+      </section>
+    </div>
+  </div>`;
+
+// Bild der Einheit in den Abspieler hängen und anklickbar machen.
+const bild = bildVon(L);
+if (bild) {
+  document.querySelector('.spieler-bild').appendChild(bildKarte(bild));
+} else {
+  // **Kein Platzhalter.** Seit dem 05.10.2026 bekommt jede Lektion ein
+  // gemaltes Bild (E-19d); fehlt es, ist es noch nicht gemalt. Ein Hinweis auf
+  // etwas Kommendes ist schlechter als gar keiner, und er stünde über dem
+  // Abspieler an der besten Stelle.
+  document.querySelector('.spieler-bild').remove();
+}
+abspielerStarten(L);
+
+// ---- Belegblatt -------------------------------------------------------
+function zeigBeleg(id) {
+  const b = belegDetails[id];
+  const q = b && (b.quelle || quellen[b.quelle_id]);
+  const blatt = document.createElement('div');
+  blatt.className = 'blatt';
+  blatt.innerHTML = `
+    <div class="blatt-innen">
+      <div class="blatt-kopf"><h3>Beleg ${roh(id)}</h3><button class="bs-k bs-zu" data-zu>×</button></div>
+      ${b ? `
+        <blockquote class="zitat">„${roh(b.zitat)}“</blockquote>
+        <dl style="margin:0">
+          <div class="zeile"><dt>Aussage</dt><dd>${roh(b.aussage)}</dd></div>
+          <div class="zeile"><dt>Fundstelle</dt><dd>${roh(b.stelle)}</dd></div>
+          <div class="zeile"><dt>Quelle</dt><dd>${q ? roh(q.titel) : roh(b.quelle_id || '—')}${q && q.urheber ? `<br><span class="fein">${roh(q.urheber)}, ${roh(q.jahr)} · ${roh(q.fundort)}</span>` : ''}</dd></div>
+          <div class="zeile"><dt>Zuversicht</dt><dd>${roh(b.zuversicht)} <span class="fein">— Skala unbekannt, R-13</span></dd></div>
+        </dl>`
+      : `<div class="fehlt">
+           Zu <b>${roh(id)}</b> liegt in diesem Lektionspaket kein ausgeschriebener
+           Beleg. Seit Vertrag v2 kommen sie mitgeliefert (R-5) — dieser hier fehlt
+           im Beispiel.
+           <br><br>
+           Hier wird nichts erfunden. Genau so soll es später auch
+           aussehen, wenn ein Beleg fehlt: TB-8 verlangt, dass die App sagt,
+           was sie nicht hat, statt etwas Plausibles hinzuschreiben.
+         </div>` }
+    </div>`;
+  const zu = () => { blatt.remove(); document.removeEventListener('keydown', taste); };
+  const taste = (e) => { if (e.key === 'Escape') zu(); };
+  blatt.addEventListener('click', (e) => { if (e.target === blatt || e.target.hasAttribute('data-zu')) zu(); });
+  document.addEventListener('keydown', taste);
+  document.body.appendChild(blatt);
+  blatt.querySelector('[data-zu]').focus();
+}
+
+// ---- Die Folge bewerten (OBF-19) -------------------------------------
+//
+// Rückmeldung vom 13.09.2026 zuerst: „gib mir bei jeder Einheit ein kleines Symbol,
+// wo ich Feedback ablassen kann." Dann, nachdem es dastand: **„ich will den
+// podcast bewerten und nicht 100.000 text stellen."**
+//
+// Er hat recht, und der erste Bau hat die Lage verkannt. Er hört eine Folge
+// und hat danach ein Urteil über *die Folge*. Ein Knopf je Kernaussage
+// verlangt, dass er beim Hören mitliest und je Absatz entscheidet — bei 309
+// Einheiten ist das Arbeit ohne Ertrag.
+//
+// Also **eine** Bewertung, und zwar dort, wo die anderen Handgriffe zur Folge
+// schon liegen: in der Werkzeugzeile neben „offline sichern", „als gehört
+// markieren" und „zu den Fragen" (`abspieler.js`). Rückmeldung: „mach neben die
+// buttons offline zu den fragen einfach einen mit feedback."
+//
+// **Die Fassung wird auf dem Server mitgeschrieben**, nicht hier mitgeschickt
+// (AUF-18a): Eine Bewertung gilt für den Stand, der gehört wurde.
+//
+// Der Datenweg trägt weiter eine Einheit (`einheit_id` ist nullable). Die
+// Oberfläche fragt nicht danach. Wenn einmal eine einzelne Stelle gemeint
+// ist, ist der Weg da, ohne dass jeder Absatz einen Knopf braucht.
+const RM_ARTEN = [
+  ['gut', 'gut'],
+  ['unklar', 'unklar'],
+  ['zu_lang', 'zu lang'],
+  ['falsch', 'falsch'],
+  ['sonst', 'anderes'],
+];
+
+function zeigRueckmeldung() {
+  const p = L.pipeline || {};
+  const blatt = document.createElement('div');
+  blatt.className = 'blatt';
+  blatt.innerHTML = `
+    <div class="blatt-innen">
+      <div class="blatt-kopf"><h3>Rückmeldung</h3><button class="bs-k bs-zu" data-zu>×</button></div>
+      <p class="fe-kern" style="margin:0 0 4px">${roh(L.titel)}</p>
+      <p class="rm-stand">${p.nummer
+        ? `Gilt für Fassung ${p.nummer}${p.erzeugt ? `, gebaut am ${roh(p.erzeugt)}` : ''}. Das wird mitgeschrieben.`
+        : 'Diese Folge ist vor der Fassungszählung entstanden.'}</p>
+      <div class="rm-arten">
+        ${RM_ARTEN.map(([k, t]) =>
+          `<button class="rm-art" data-art="${k}" aria-pressed="false">${t}</button>`).join('')}
+      </div>
+      <textarea id="rm-text" placeholder="Was genau? Ein Satz reicht."></textarea>
+      <div class="frage-fuss">
+        <button class="tun" id="rm-ab">Abschicken</button>
+        <span class="fein" id="rm-sagt"></span>
+      </div>
+    </div>`;
+  const zu = () => { blatt.remove(); document.removeEventListener('keydown', taste); };
+  const taste = (ev) => { if (ev.key === 'Escape') zu(); };
+  blatt.addEventListener('click', (ev) => {
+    if (ev.target === blatt || ev.target.hasAttribute('data-zu')) return zu();
+    const a = ev.target.closest('[data-art]');
+    if (a) blatt.querySelectorAll('[data-art]').forEach(
+      (x) => x.setAttribute('aria-pressed', String(x === a)));
+  });
+  blatt.querySelector('#rm-ab').addEventListener('click', async () => {
+    const knopf = blatt.querySelector('#rm-ab');
+    const sagt = blatt.querySelector('#rm-sagt');
+    const art = blatt.querySelector('[data-art][aria-pressed="true"]')?.dataset.art;
+    const text = blatt.querySelector('#rm-text').value.trim();
+    if (!art) { sagt.textContent = 'Bitte eines auswählen.'; return; }
+    if (art === 'sonst' && !text) { sagt.textContent = 'Bei „anderes“ bitte einen Satz dazu.'; return; }
+    knopf.disabled = true; sagt.textContent = 'schickt …';
+    try {
+      const antwort = await fetch(weg(`api/lektion/${encodeURIComponent(L.id)}/rueckmeldung`), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        // **Ohne `einheit`: Die Bewertung gilt der Folge.** Der Datenweg kann
+        // weiter je Einheit (`einheit_id` ist nullable), angeboten wird es
+        // nicht — siehe der Kommentar am Klickweg unten.
+        body: JSON.stringify({ art, text }),
+      });
+      if (!antwort.ok) throw new Error(`Dienst antwortet mit ${antwort.status}`);
+      document.getElementById('rueckmeldung')?.classList.add('gesagt');
+      sagt.textContent = 'Angekommen. Danke.';
+      setTimeout(zu, 700);
+    } catch (f) {
+      // TB-8: sagen, was nicht ging, statt es zu verschlucken.
+      knopf.disabled = false;
+      sagt.textContent = `Nicht angekommen — ${f.message}. Nochmal?`;
+    }
+  });
+  document.addEventListener('keydown', taste);
+  document.body.appendChild(blatt);
+  blatt.querySelector('#rm-text').focus();
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-beleg]');
+  if (b) zeigBeleg(b.dataset.beleg);
+  if (e.target.closest('[data-rueckmeldung]')) zeigRueckmeldung();
+  const m = e.target.closest('[data-muster]');
+  if (m) {
+    const feld = m.parentElement.querySelector('.musterantwort');
+    feld.hidden = !feld.hidden;
+    m.textContent = feld.hidden ? 'Variante „sofort zeigen“ ansehen' : 'Musterantwort wieder verbergen';
+  }
+});
+</script>
+
+<script type="module">
+  // Ohne registrierten Service Worker bietet kein Browser „installieren" an —
+  // das Manifest allein genuegt nicht.
+  // **Ein wartender Worker wird gemeldet, nicht durchgedrückt.**
+  // Er übernimmt erst, wenn keine Seite der alten Fassung mehr offen ist —
+  // so sieht eine Seite immer genau eine Fassung. Bis dahin steht der Hinweis
+  // unten in der Fußzeile, leise und wegklickbar.
+  if ('serviceWorker' in navigator) {
+    const ort = new URL('./', import.meta.url);
+    navigator.serviceWorker
+      .register(new URL('sw.js', ort), { scope: ort.pathname, updateViaCache: 'none' })
+      .then((reg) => {
+        const melde = () => {
+          if (!reg.waiting) return;
+          const f = document.querySelector('.huelle-fuss');
+          if (!f || f.querySelector('.neue-fassung')) return;
+          const a = document.createElement('a');
+          a.className = 'neue-fassung';
+          a.href = '#';
+          a.textContent = 'neue Fassung laden';
+          // **`location.reload()` allein tut es nicht.** Ein Neuladen haelt
+          // die Seite am Leben, also wartet der neue Worker weiter — der
+          // Hinweis versprach etwas, das er nicht einloeste (14.09.2026).
+          // Erst uebernimmt der Wartende, dann laedt die Seite neu.
+          a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            a.textContent = 'laedt …';
+            reg.waiting?.postMessage({ art: 'jetzt-uebernehmen' });
+            // Kommt der Worker nicht, wird trotzdem geladen: schlimmstenfalls
+            // aendert sich nichts, aber nichts bleibt haengen.
+            setTimeout(() => location.reload(), 1500);
+          });
+          f.appendChild(a);
+        };
+        // Der Tausch ist vollzogen, wenn ein anderer Worker steuert.
+        let laedtSchon = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (laedtSchon) return;
+          laedtSchon = true;
+          location.reload();
+        });
+        melde();
+        reg.addEventListener('updatefound', () => {
+          const neu = reg.installing;
+          if (neu) neu.addEventListener('statechange', melde);
+        });
+      })
+      .catch((f) => console.warn('Service Worker nicht registriert:', f));
+  }
+</script>
+<script>
+// **Der Wächter.** Er steht bewusst hier und nicht in einem Modul: Bricht ein
+// Modulimport, läuft kein Modulcode mehr — auch kein Fehlerbehandler, der
+// darin steht. Am 13.09.2026 hieß das auf dem Telefon: schwarzer Bildschirm,
+// keine Zeile, kein Hinweis.
+//
+// Er prüft nur eines: Ist nach drei Sekunden etwas gezeichnet? Wenn nicht,
+// sagt er, was zu tun ist. Er repariert nichts — er sorgt dafür, dass man
+// nicht vor einer schwarzen Fläche steht.
+(function () {
+  var gemeldet = false;
+  // **Was genau bricht, nicht nur dass etwas bricht.** Am 13.09.2026 war der
+  // Cache auf die Geraet nachweislich sauber und die Fassung aktuell — und
+  // die App lud trotzdem nicht. Ohne den konkreten Fehler ist jede weitere
+  // Vermutung geraten.
+  var fehler = [];
+  function merke(t) { if (t && fehler.indexOf(t) < 0) fehler.push(t); }
+  addEventListener('error', function (e) {
+    if (e.target && e.target.src) merke('Datei fehlt: ' + e.target.src);
+    else if (e.target && e.target.href) merke('Datei fehlt: ' + e.target.href);
+    else if (e.message) merke(e.message + (e.filename ? '  (' + e.filename.split('/').pop()
+      + ':' + e.lineno + ')' : ''));
+  }, true);
+  addEventListener('unhandledrejection', function (e) {
+    merke('Abgebrochen: ' + ((e.reason && (e.reason.message || e.reason)) || 'unbekannt'));
+  });
+  function melde(warum) {
+    if (gemeldet) return;
+    gemeldet = true;
+    var z = document.getElementById('app') || document.body;
+    z.setAttribute('style', 'padding:24px;max-width:34rem;margin:0 auto;'
+      + 'font:16px/1.6 system-ui,sans-serif;color:#1c1f24;background:#f7f6f3;'
+      + 'min-height:100vh');
+    z.innerHTML = '<h1 style="font-size:19px;margin:0 0 10px">TeachBuddy lädt nicht</h1>'
+      + '<p style="margin:0 0 10px">' + warum + '</p>'
+      + '<p style="margin:0 0 18px;color:#6a7078;font-size:14px">Fast immer ist '
+      + 'ein alter Stand im Gerät schuld. Das Zurücksetzen wirft ihn weg und '
+      + 'kostet nichts außer einem Neuladen.</p>'
+      + (fehler.length
+          ? '<p style="margin:0 0 18px;font-size:13px;color:#b25b31;'
+            + 'background:#fff;border:1px solid #f2ddd2;border-radius:8px;'
+            + 'padding:10px 12px;word-break:break-word"><b>Was schiefging:</b><br>'
+            + fehler.join('<br>') + '</p>'
+          : '')
+      + '<p><a href="./neustart.html" style="display:inline-block;padding:11px 20px;'
+      + 'background:#b57722;color:#fff;border-radius:8px;text-decoration:none">'
+      + 'Zurücksetzen</a></p>';
+  }
+  // **Nicht einmal messen, sondern nachsehen, bis etwas da ist.** Ein
+  // einzelner Zeitpunkt trifft auf einem langsamen Geraet den Moment kurz vor
+  // dem Fertigwerden — und dann ueberschreibt der Waechter guten Inhalt.
+  var bis = Date.now() + 9000;
+  (function schauen() {
+    var z = document.getElementById('app');
+    if (z && z.children.length) return;            // da ist was, Ruhe
+    if (Date.now() > bis) {
+      melde('Die App hat nach neun Sekunden nichts angezeigt.');
+      return;
+    }
+    setTimeout(schauen, 400);
+  })();
+})();
+</script>
+</body>
+</html>

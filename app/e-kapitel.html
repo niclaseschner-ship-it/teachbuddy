@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kapitel — Mindmap, Gespräch und Lektionen · TeachBuddy</title>
+<!-- Installierbar als Vollbild-PWA. -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#b57722">
+<script src="./app-installieren.js" data-name="TeachBuddy" defer></script>
+<!-- iOS beachtet das Manifest nur halb: Ohne diese drei Zeilen startet die
+     App auf dem iPhone weiter im Safari-Rahmen. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TeachBuddy">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+
+<link rel="stylesheet" href="./stil.css">
+<link rel="stylesheet" href="./abspieler.css">
+<style>
+  .k-kopf-gross { margin-bottom: 20px; }
+  .k-weg { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); margin-bottom: 5px; }
+  .k-weg a { color: var(--text-3); text-decoration: none; }
+  .k-weg a:hover { color: var(--fokus); }
+  .k-h1 { font-family: var(--serif); font-size: 25px; line-height: 1.22; margin: 0 0 5px; font-weight: 600; overflow-wrap: break-word; }
+  .k-unter { margin: 0 0 12px; color: var(--text-2); font-size: 14.5px; }
+  .k-bilanz { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2); }
+  .k-bilanz b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .karte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--r); overflow: hidden; margin-bottom: 18px; }
+  /* Der Bildschirmzustand steht in der laufenden Zeile — sichtbar im Gelingen
+     wie im Scheitern (14.09.2026). */
+  .wach.an { color: var(--geprueft); }
+  .wach.aus { color: var(--strittig); font-weight: 600; }
+  .karte > * { min-width: 0; }
+  .karte-kopf { display: flex; align-items: baseline; gap: 8px; padding: 13px 16px 10px; }
+  .karte-kopf h2 { margin: 0; flex: 1; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+  .karte-kopf small { color: var(--text-3); font-size: 12px; }
+  .karte-fuss { padding: 11px 16px; font-size: 12.5px; color: var(--text-3); line-height: 1.55; border-top: 1px solid var(--linie-zart); }
+
+  .lek-geplant { opacity: .52; }
+  .lek-geplant .lek-link { cursor: default; }
+  .lek-geplant .lek-meta { font-style: italic; }
+
+  /* --- Sprachgespräch (E-20, OBF-13..13c) --- */
+  .gespraech { display: flex; align-items: center; gap: 14px; padding: 4px 16px 16px; }
+  .mikro { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--strittig); cursor: pointer; display: grid; place-items: center; }
+  .mikro svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .mikro.laeuft { background: var(--geprueft); animation: pulsen 1.8s ease-in-out infinite; }
+  @keyframes pulsen { 0%, 100% { box-shadow: 0 0 0 0 rgba(99,184,154,.45); } 50% { box-shadow: 0 0 0 9px rgba(99,184,154,0); } }
+  .gespraech-text { flex: 1; min-width: 0; }
+  .gespraech-titel { font-size: 14.5px; font-weight: 600; }
+  .gespraech-meta { font-size: 12.5px; color: var(--text-3); margin-top: 3px; }
+  .uhr { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; color: var(--geprueft); font-weight: 600; }
+  .uhr i { width: 7px; height: 7px; border-radius: 50%; background: var(--geprueft); display: inline-block; }
+
+  /* --- Lektionsliste mit Bild je Einheit --- */
+  .lektionen { list-style: none; margin: 0; padding: 0 0 6px; }
+  .lek { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+  .lek + .lek { border-top: 1px solid var(--linie-zart); }
+  .lek:hover { background: var(--flaeche-hoch); }
+  .lek-bild { flex: none; width: 76px; }
+  .lek-bild .bild-karte { border-radius: 6px; border: 1px solid var(--linie); }
+  .lek-bild .bild-lupe { right: 3px; bottom: 3px; padding: 2px 4px; font-size: 0; gap: 0; }
+  .lek-bild .bild-lupe svg { width: 10px; height: 10px; }
+  .lek-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; padding: 6px 0; }
+  .lek-nr { flex: none; width: 16px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .lek-mitte { flex: 1; min-width: 0; }
+  .lek-titel { font-size: 14.5px; }
+  .lek-link:hover .lek-titel { color: var(--fokus); }
+  .lek-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .lek-pfeil { flex: none; width: 13px; color: var(--text-3); }
+  .lek-pfeil svg { width: 13px; height: 13px; }
+</style>
+</head>
+<body>
+<div class="huelle" id="app">lädt…</div>
+
+<script type="module">
+import { bildKarte } from './bildschau.js';
+import { ikon, lektionsWeg } from './huelle.js';
+import { mmss, zustandMarke } from './abspieler.js';
+import { fortschritt } from './zustand.js';
+import { holeMindmap, mindmapKarte } from './mindmap.js';
+
+const roh = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const BASIS = new URL('./', import.meta.url);
+const weg = (p) => new URL(String(p).replace(/^\/+/, ''), BASIS).pathname;
+// Alle Pfade, dann den, der das gesuchte Kapitel führt (13.09.2026).
+const _alle = (await (await fetch(weg('api/lernpfade'))).json()).lernpfade || [];
+const _gesucht = new URLSearchParams(location.search).get('k');
+const pfad = _alle.find((p) => (p.kapitel || []).some((k) => k.id === _gesucht))
+          || _alle.find((p) => (p.kapitel || []).length) || _alle[0];
+const wunsch = new URLSearchParams(location.search).get('k');
+const K0 = pfad.kapitel.find((k) => k.id === wunsch)
+        || pfad.kapitel.find((k) => (k.lektionen || []).some((l) => !l.geplant))
+        || pfad.kapitel[0];
+const vertrag = { kapitel: pfad.kapitel, _mindmap_beispiel: null };
+const K = K0;
+const { gehoert, gesamt: gebaut, geplant, offenSek } = fortschritt(K);
+
+// Eine geplante Lektion ist kein Verweis: Dahinter liegt nichts. Sie steht
+// mit Titel und Platz da und sagt, dass die Folge noch nicht gebaut ist.
+// Wegzulassen wäre die schlechtere Wahl — dann sähe das Kapitel fertig aus.
+const lekHtml = (l, i) => ((l.geplant || l.hat_ton === false) ? `
+  <li class="lek lek-geplant">
+    <span class="lek-bild ohne-bild"></span>
+    <span class="lek-link">
+      <span class="lek-nr">${l.nummer ?? i + 1}</span>
+      <span class="lek-mitte">
+        <span class="lek-titel">${roh(l.titel)}</span>
+        <span class="lek-meta">${l.geplant ? 'noch keine Folge' : 'Wissen da, Folge fehlt'}</span>
+      </span>
+    </span>
+  </li>` : `
+  <li class="lek" data-lektion="${l.id}">
+    <span class="lek-bild"></span>
+    <a class="lek-link" href="${lektionsWeg(l, K)}">
+      <span class="lek-nr">${l.nummer ?? i + 1}</span>
+      <span class="lek-mitte">
+        <span class="lek-titel">${roh(l.titel)}</span>
+        <span class="lek-meta">${mmss(l.dauer_sek)} ${zustandMarke(l).replace('id="zustand-marke"', '')}</span>
+      </span>
+      <span class="lek-pfeil">${ikon.pfeil}</span>
+    </a>
+  </li>`);
+
+document.getElementById('app').innerHTML = `
+  <header class="k-kopf-gross">
+    <div class="k-weg"><a href="./uebersicht.html">← Übersicht</a><span>·</span><span>Kapitel ${K.nummer} von ${pfad.kapitel_gesamt ?? pfad.kapitel.length}</span></div>
+    <h1 class="k-h1">${roh(K.titel)}</h1>
+    <p class="k-unter">${roh(K.kurzfassung)}</p>
+    <div class="k-bilanz">
+      <span><b>${gehoert}</b> von <b>${gebaut}</b> Lektionen gehört</span>
+      <span>·</span>
+      <span><b>${Math.round(offenSek / 60)}</b> min offen</span>
+      ${geplant ? `<span>·</span><span><b>${geplant}</b> noch nicht gebaut</span>` : ''}
+    </div>
+  </header>
+
+  <section class="karte">
+    <div class="karte-kopf"><h2>Mindmap des Kapitels</h2><small>worum es geht, auf einen Blick</small></div>
+    <div id="mindmap-platz"></div>
+  </section>
+
+  <section class="karte">
+    <div class="karte-kopf"><h2>Gespräch zum Kapitel</h2><small>gesprochen, in Echtzeit</small></div>
+    <div class="gespraech">
+      <button class="mikro" id="mikro" aria-label="Gespräch starten">
+        <svg viewBox="0 0 20 20"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5v2"/></svg>
+      </button>
+      <div class="gespraech-text">
+        <div class="gespraech-titel" id="gespraech-titel">Gespräch starten</div>
+        <div class="gespraech-meta" id="gespraech-meta">Er eröffnet mit einer Frage zum Kapitel. Unterbrechen ist erlaubt.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="karte">
+    <div class="karte-kopf"><h2>Lektionen</h2><small>${K.lektionen.length} im Kapitel, ${gebaut} gebaut</small></div>
+    <ul class="lektionen">${K.lektionen.map(lekHtml).join('')}</ul>
+  </section>`;
+
+// Die Mindmap ist die gebaute Grafik des Kapitels (E-24a): dieselbe
+// Bildsprache wie die Grafik einer Lektion, nur größer und als Übersicht.
+// Sie geht deshalb durch dieselbe Bildschau — antippen macht sie groß.
+//
+// Fehlt sie, tritt der gezeichnete Knotenbaum ein. Er ist nicht die zweite
+// Wahl aus Bequemlichkeit, sondern das Einzige, was ohne gebaute Grafik
+// überhaupt geht: erfunden wird keine.
+const mmDaten = await holeMindmap(K.id);
+const mmPlatz = document.getElementById('mindmap-platz');
+if (mmDaten?.bild?.url) {
+  const b = mmDaten.bild;
+  mmPlatz.appendChild(bildKarte({
+    url: weg(b.url), breite: b.breite || 2000, hoehe: b.hoehe || 1400,
+    titel: b.titel || `Mindmap — ${K.titel}`, quelle: '',
+  }, { lupe: 'groß ansehen', maxHoehe: 520 }));
+} else {
+  mmPlatz.appendChild(mindmapKarte(mmDaten));
+}
+
+// Vorschaubild je Lektion: Jede Lektion hat ihr eigenes (E-19), der Dienst
+// liefert es unter /api/lektion/<id>/bild.html. Hat eine Lektion keins, bleibt der Platz leer statt ein
+// fremdes Bild zu zeigen.
+for (const li of document.querySelectorAll('.lek')) {
+  const id = li.dataset.lektion;
+  const lek = (K.lektionen || []).find((x) => x.id === id);
+  const platz = li.querySelector('.lek-bild');
+  if (!platz) continue;
+  const b = lek?.bild;
+  if (b?.url) {
+    platz.appendChild(bildKarte({
+      url: weg(b.url), breite: b.breite || 1600, hoehe: b.hoehe || 1000,
+      titel: b.titel || lek.titel, quelle: '',
+    }, { lupe: '' }));
+  } else {
+    platz.classList.add('ohne-bild');
+  }
+}
+
+// Die Bedienung ist die des Entwurfs: derselbe Knopf, dieselbe Uhr, dieselben
+// Zustaende. Neu ist nur, dass jetzt wirklich ein Gespraech dahinterhaengt.
+const { Gespraech, geld, STILLE_SEK, HINTERGRUND_SEK } = await import('./gespraech.js');
+
+let lauf = null;
+const knopf = document.getElementById('mikro');
+const titel = document.getElementById('gespraech-titel');
+const meta = document.getElementById('gespraech-meta');
+
+const ruhe = (text) => {
+  knopf.classList.remove('laeuft');
+  knopf.disabled = false;
+  titel.textContent = 'Gespräch starten';
+  meta.textContent = text
+    || 'Er eröffnet mit einer Frage zum Kapitel. Unterbrechen ist erlaubt.';
+};
+
+knopf.addEventListener('click', async () => {
+  if (lauf) { await lauf.beenden('nutzer'); return; }
+
+  knopf.disabled = true;
+  titel.textContent = 'Verbinde …';
+  meta.textContent = 'Mikrofon und Sitzung werden vorbereitet.';
+
+  const g = new Gespraech(K.id);
+
+  g.addEventListener('offen', () => {
+    lauf = g;
+    knopf.disabled = false;
+    knopf.classList.add('laeuft');
+    titel.textContent = 'Sitzung offen';
+  });
+
+  // **Auch das Gelingen gehört hin.** Rückmeldung: „wo steht Screen bleibt an, wenn
+  // ich die Session starte?" Nirgends — die Zeile meldete sich nur im
+  // Fehlerfall. Damit ist nicht zu unterscheiden, ob der Wake Lock greift
+  // oder ob nur noch niemand gemerkt hat, dass er fehlt. Beides sieht gleich
+  // aus, bis der Bildschirm ausgeht, und dann ist es zu spät für die Frage.
+  let wachHinweis = '';
+  g.addEventListener('wach', (e) => {
+    wachHinweis = e.detail.moeglich
+      ? ' · <span class="wach an">Bildschirm bleibt an</span>'
+      : ' · <span class="wach aus">Bildschirm geht aus, stell die Sperre höher</span>';
+  });
+
+  // OBF-13b: Dauer UND Kosten laufen sichtbar mit. Ohne Obergrenze ist das
+  // die einzige Kontrolle (E-21), also gehoert es in die Zeile.
+  g.addEventListener('takt', (e) => {
+    // Der Countdown erscheint nur, wenn die Stille auch wirklich gemessen
+    // wird. Sonst stand da „schließt in 1 s“, während gesprochen wurde.
+    // Im Hintergrund läuft eine andere Uhr — und dort sieht sie ohnehin
+    // niemand, sie steht nur für den Moment des Zurückkommens da.
+    const rest = e.detail.verdecktSek !== undefined
+      ? Math.max(0, Math.ceil(HINTERGRUND_SEK - e.detail.verdecktSek))
+      : Math.max(0, Math.ceil(STILLE_SEK - e.detail.stilleSek));
+    const stille = e.detail.verdecktSek !== undefined
+      ? (rest <= 20 ? ` · Bildschirm aus, schließt in ${rest}\u00a0s` : ' · Bildschirm aus')
+      : (e.detail.misst && rest <= 5) ? ` · schließt in ${rest}\u00a0s` : '';
+    meta.innerHTML = `<span class="uhr"><i></i>${mmss(g.sekunden)} offen</span>`
+      + ` · ${geld(g.kosten, g.waehrung)}${stille}${wachHinweis}`;
+  });
+
+  g.addEventListener('zu', (e) => {
+    lauf = null;
+    const d = e.detail;
+    ruhe(d.grund.startsWith('verbindung')
+      ? `Verbindung abgebrochen (${d.grund.split(':')[1]}) nach ${mmss(d.sekunden)}`
+      : d.grund === 'stille'
+      ? `Nach ${STILLE_SEK}\u00a0s Stille geschlossen · ${mmss(d.sekunden)} · ${geld((d.sekunden / 60) * g.preisProMinute, g.waehrung)}`
+      : d.grund === 'hintergrund'
+      // TB-8: sagen, was war. Ein Gespräch, das nach dem Entsperren einfach
+      // weg ist, sieht aus wie ein Absturz — und genau so wurde es am
+      // 14.09.2026 gemeldet.
+      ? `Beendet, als der Bildschirm ausging · ${mmss(d.sekunden)} · ${geld((d.sekunden / 60) * g.preisProMinute, g.waehrung)} · Der Verlauf ist gesichert, beim nächsten Mal knüpft er daran an.`
+      : `Beendet · ${mmss(d.sekunden)} · ${geld((d.sekunden / 60) * g.preisProMinute, g.waehrung)}`);
+  });
+
+  try {
+    await g.starten();
+  } catch (fehler) {
+    // Ehrlich sein, statt einen toten Knopf zu zeigen (TB-8).
+    lauf = null;
+    ruhe('Kein Gespräch: ' + fehler.message);
+  }
+});
+</script>
+
+<script type="module">
+  // Ohne registrierten Service Worker bietet kein Browser „installieren" an —
+  // das Manifest allein genuegt nicht.
+  // **Ein wartender Worker wird gemeldet, nicht durchgedrückt.**
+  // Er übernimmt erst, wenn keine Seite der alten Fassung mehr offen ist —
+  // so sieht eine Seite immer genau eine Fassung. Bis dahin steht der Hinweis
+  // unten in der Fußzeile, leise und wegklickbar.
+  if ('serviceWorker' in navigator) {
+    const ort = new URL('./', import.meta.url);
+    navigator.serviceWorker
+      .register(new URL('sw.js', ort), { scope: ort.pathname, updateViaCache: 'none' })
+      .then((reg) => {
+        const melde = () => {
+          if (!reg.waiting) return;
+          const f = document.querySelector('.huelle-fuss');
+          if (!f || f.querySelector('.neue-fassung')) return;
+          const a = document.createElement('a');
+          a.className = 'neue-fassung';
+          a.href = '#';
+          a.textContent = 'neue Fassung laden';
+          // **`location.reload()` allein tut es nicht.** Ein Neuladen haelt
+          // die Seite am Leben, also wartet der neue Worker weiter — der
+          // Hinweis versprach etwas, das er nicht einloeste (14.09.2026).
+          // Erst uebernimmt der Wartende, dann laedt die Seite neu.
+          a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            a.textContent = 'laedt …';
+            reg.waiting?.postMessage({ art: 'jetzt-uebernehmen' });
+            // Kommt der Worker nicht, wird trotzdem geladen: schlimmstenfalls
+            // aendert sich nichts, aber nichts bleibt haengen.
+            setTimeout(() => location.reload(), 1500);
+          });
+          f.appendChild(a);
+        };
+        // Der Tausch ist vollzogen, wenn ein anderer Worker steuert.
+        let laedtSchon = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (laedtSchon) return;
+          laedtSchon = true;
+          location.reload();
+        });
+        melde();
+        reg.addEventListener('updatefound', () => {
+          const neu = reg.installing;
+          if (neu) neu.addEventListener('statechange', melde);
+        });
+      })
+      .catch((f) => console.warn('Service Worker nicht registriert:', f));
+  }
+</script>
+<script>
+// **Der Wächter.** Er steht bewusst hier und nicht in einem Modul: Bricht ein
+// Modulimport, läuft kein Modulcode mehr — auch kein Fehlerbehandler, der
+// darin steht. Am 13.09.2026 hieß das auf dem Telefon: schwarzer Bildschirm,
+// keine Zeile, kein Hinweis.
+//
+// Er prüft nur eines: Ist nach drei Sekunden etwas gezeichnet? Wenn nicht,
+// sagt er, was zu tun ist. Er repariert nichts — er sorgt dafür, dass man
+// nicht vor einer schwarzen Fläche steht.
+(function () {
+  var gemeldet = false;
+  // **Was genau bricht, nicht nur dass etwas bricht.** Am 13.09.2026 war der
+  // Cache auf die Geraet nachweislich sauber und die Fassung aktuell — und
+  // die App lud trotzdem nicht. Ohne den konkreten Fehler ist jede weitere
+  // Vermutung geraten.
+  var fehler = [];
+  function merke(t) { if (t && fehler.indexOf(t) < 0) fehler.push(t); }
+  addEventListener('error', function (e) {
+    if (e.target && e.target.src) merke('Datei fehlt: ' + e.target.src);
+    else if (e.target && e.target.href) merke('Datei fehlt: ' + e.target.href);
+    else if (e.message) merke(e.message + (e.filename ? '  (' + e.filename.split('/').pop()
+      + ':' + e.lineno + ')' : ''));
+  }, true);
+  addEventListener('unhandledrejection', function (e) {
+    merke('Abgebrochen: ' + ((e.reason && (e.reason.message || e.reason)) || 'unbekannt'));
+  });
+  function melde(warum) {
+    if (gemeldet) return;
+    gemeldet = true;
+    var z = document.getElementById('app') || document.body;
+    z.setAttribute('style', 'padding:24px;max-width:34rem;margin:0 auto;'
+      + 'font:16px/1.6 system-ui,sans-serif;color:#1c1f24;background:#f7f6f3;'
+      + 'min-height:100vh');
+    z.innerHTML = '<h1 style="font-size:19px;margin:0 0 10px">TeachBuddy lädt nicht</h1>'
+      + '<p style="margin:0 0 10px">' + warum + '</p>'
+      + '<p style="margin:0 0 18px;color:#6a7078;font-size:14px">Fast immer ist '
+      + 'ein alter Stand im Gerät schuld. Das Zurücksetzen wirft ihn weg und '
+      + 'kostet nichts außer einem Neuladen.</p>'
+      + (fehler.length
+          ? '<p style="margin:0 0 18px;font-size:13px;color:#b25b31;'
+            + 'background:#fff;border:1px solid #f2ddd2;border-radius:8px;'
+            + 'padding:10px 12px;word-break:break-word"><b>Was schiefging:</b><br>'
+            + fehler.join('<br>') + '</p>'
+          : '')
+      + '<p><a href="./neustart.html" style="display:inline-block;padding:11px 20px;'
+      + 'background:#b57722;color:#fff;border-radius:8px;text-decoration:none">'
+      + 'Zurücksetzen</a></p>';
+  }
+  // **Nicht einmal messen, sondern nachsehen, bis etwas da ist.** Ein
+  // einzelner Zeitpunkt trifft auf einem langsamen Geraet den Moment kurz vor
+  // dem Fertigwerden — und dann ueberschreibt der Waechter guten Inhalt.
+  var bis = Date.now() + 9000;
+  (function schauen() {
+    var z = document.getElementById('app');
+    if (z && z.children.length) return;            // da ist was, Ruhe
+    if (Date.now() > bis) {
+      melde('Die App hat nach neun Sekunden nichts angezeigt.');
+      return;
+    }
+    setTimeout(schauen, 400);
+  })();
+})();
+</script>
+</body>
+</html>

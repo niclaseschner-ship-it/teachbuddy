@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Einstellungen mit Schlüsseln
+.env
+.env.*
+!.env.example
+
+# Alles, was gebaut oder gemessen wird: Index, Lernstand, Pipeline-Stände
+arbeit/
+
+# Podcast-Audio kommt als Release-Download (python start.py --audio)
+demo/audio/
+*.mp3
+*.wav
+
+*.log
+.DS_Store

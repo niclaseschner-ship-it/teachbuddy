@@ -1,0 +1,9 @@
+TeachBuddy
+Copyright 2026 The TeachBuddy Authors
+
+This product includes software developed by the same author for an earlier,
+unpublished audio-drama project (text-to-speech adapter, multi-voice script
+format, audio segment cache), relicensed here under the Apache License 2.0.
+
+The bundled learning content in inhalt/ is licensed separately under
+CC BY 4.0, see inhalt/LIZENZ.md. Quoted source material keeps its own license.

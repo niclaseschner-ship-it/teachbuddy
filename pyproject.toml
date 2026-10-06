@@ -1,0 +1,31 @@
+[project]
+name = "teachbuddy"
+version = "0.1.0"
+description = "Lern-App, die Wissen belegt sammelt und als Podcast, Bild, Mindmap und Gespräch ausspielt."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0",
+]
+
+[project.optional-dependencies]
+# Die Content-Pipeline: Vertonung über Azure OpenAI, Lektionsbilder einbinden.
+studio = [
+    "openai>=1.40",
+    "pillow>=10.0",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://niclaseschner-ship-it.github.io/teachbuddy/"
+Source = "https://github.com/niclaseschner-ship-it/teachbuddy"
+
+[tool.setuptools]
+py-modules = ["pfade", "zugang", "start"]
+packages = ["app", "dienst", "bibliothek", "podcast", "pipeline", "pipeline.lektionsbild"]
+
+[tool.pytest.ini_options]
+testpaths = ["dienst/tests", "podcast"]

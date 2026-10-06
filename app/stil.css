@@ -1,0 +1,328 @@
+/* Gemeinsame Grundlage aller Ansichten: Farben, Schrift, Abstände. */
+
+:root {
+  color-scheme: dark light;
+
+  --bg: #15171c;
+  --flaeche: #1d2027;
+  --flaeche-hoch: #242831;
+  --linie: #2e333d;
+  --linie-zart: #23272f;
+
+  --text: #e9ebef;
+  --text-2: #a9b0bc;
+  --text-3: #6e7683;
+
+  /* Zwei Bedeutungen, zwei Farben — OBF-3 trennt Hören von Prüfen. */
+  --hoeren: #e0a355;
+  --hoeren-matt: #6b5330;
+  --geprueft: #63b89a;
+  --geprueft-matt: #2f4f45;
+
+  --fokus: #7aa2f7;
+
+  --r: 12px;
+  --r-klein: 8px;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f6f3;
+    --flaeche: #ffffff;
+    --flaeche-hoch: #f0eeea;
+    --linie: #dedbd4;
+    --linie-zart: #e9e6e0;
+    --text: #1c1f24;
+    --text-2: #5a616b;
+    --text-3: #8a919b;
+    --hoeren: #b57722;
+    --hoeren-matt: #ecd9bb;
+    --geprueft: #2f8f6d;
+    --geprueft-matt: #c5e3d7;
+    --fokus: #2f5fc4;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body { overflow-x: hidden; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.huelle { max-width: 720px; margin: 0 auto; padding: 20px 16px 64px; }
+
+/* ---- Kopf ---------------------------------------------------------- */
+
+.marke {
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 18px;
+}
+.pfad { font-family: var(--serif); font-size: 27px; line-height: 1.2; margin: 0 0 6px; font-weight: 600; overflow-wrap: break-word; }
+.pfad-kurz { margin: 0 0 16px; color: var(--text-2); font-size: 15px; }
+
+.bilanz { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+.bilanz b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bilanz-bar { height: 4px; border-radius: 2px; background: var(--linie); overflow: hidden; display: flex; margin-bottom: 26px; }
+.bilanz-bar i { display: block; height: 100%; }
+.bilanz-bar .b-geprueft { background: var(--geprueft); }
+.bilanz-bar .b-gehoert { background: var(--hoeren); }
+
+/* ---- Weiterhören (OBF-5) ------------------------------------------- */
+
+.weiter {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--flaeche); border: 1px solid var(--linie);
+  border-left: 3px solid var(--hoeren);
+  border-radius: var(--r); padding: 14px 16px; margin-bottom: 28px;
+  text-decoration: none; text-align: left; width: 100%; font: inherit; color: inherit;
+}
+.weiter:hover { background: var(--flaeche-hoch); }
+.weiter:hover .weiter-titel { color: var(--fokus); }
+.weiter-pfeil { flex: none; width: 14px; color: var(--text-3); }
+.weiter-text { min-width: 0; flex: 1; }
+.weiter-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--hoeren); }
+.weiter-titel { font-weight: 600; margin: 1px 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.weiter-meta { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.weiter-bar { height: 3px; border-radius: 2px; background: var(--linie); margin-top: 7px; }
+.weiter-bar i { display: block; height: 100%; border-radius: 2px; background: var(--hoeren); }
+
+/* ---- Kapitel-Grundgerüst ------------------------------------------- */
+
+.kapitel { border-bottom: 1px solid var(--linie-zart); }
+.kapitel:first-child { border-top: 1px solid var(--linie-zart); }
+
+.k-kopf {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: none; border: 0; color: inherit; font: inherit;
+  padding: 13px 2px; cursor: pointer; text-align: left;
+}
+.k-kopf:hover .k-titel { color: var(--fokus); }
+.k-nr {
+  flex: none; width: 22px; font-size: 12px; color: var(--text-3);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.k-mitte { flex: 1; min-width: 0; }
+.k-titel { font-size: 15.5px; font-weight: 550; }
+.k-kurz { font-size: 13px; color: var(--text-3); margin-top: 1px; }
+.k-pfeil { flex: none; width: 14px; color: var(--text-3); transition: transform .16s ease; }
+.kapitel[open] .k-pfeil { transform: rotate(90deg); }
+
+/* Platzhalter-Kapitel sichtbar als Struktur, nicht als Inhalt (AUFTRAG §6) */
+.platzhalter .k-titel,
+.platzhalter .l-titel { color: var(--text-3); font-style: italic; font-weight: 400; }
+
+/* ---- Lektionen ------------------------------------------------------ */
+
+.l-liste { list-style: none; margin: 0; padding: 0 0 10px; }
+.l-zeile {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: none; border: 0; color: inherit; font: inherit;
+  padding: 9px 2px 9px 34px; cursor: pointer; text-align: left; border-radius: var(--r-klein);
+}
+.l-zeile:hover { background: var(--flaeche); }
+.l-titel { flex: 1; min-width: 0; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.l-dauer { flex: none; font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* ---- Kapitel-Werkzeuge (OBF-6, OBF-12, OBF-13) ---------------------- */
+
+.k-werkzeuge { display: flex; gap: 8px; padding: 4px 2px 14px 34px; flex-wrap: wrap; min-width: 0; }
+.werkzeug {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--flaeche); border: 1px solid var(--linie); color: var(--text-2);
+  border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.werkzeug:hover { color: var(--text); border-color: var(--text-3); }
+.werkzeug svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+
+/* ---- Fuß ------------------------------------------------------------ */
+
+.fuss {
+  margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--linie-zart);
+  font-size: 12.5px; color: var(--text-3); line-height: 1.6;
+}
+.fuss b { color: var(--text-2); font-weight: 600; }
+.fuss a { color: var(--fokus); }
+
+.zurueck {
+  display: inline-block; margin-bottom: 18px; font-size: 13px;
+  color: var(--text-3); text-decoration: none;
+}
+.zurueck:hover { color: var(--fokus); }
+
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+
+/* ---- Bildschau: die große, zoombare Ansicht -------------------------- */
+
+.bildschau {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(8, 9, 12, .92);
+  display: flex; flex-direction: column;
+  backdrop-filter: blur(3px);
+}
+.bs-leiste {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top));
+  border-bottom: 1px solid rgba(255, 255, 255, .1); color: #e9ebef;
+}
+.bs-titel { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bs-knoepfe { display: flex; gap: 6px; flex: none; }
+.bs-k {
+  min-width: 38px; height: 34px; padding: 0 10px;
+  background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .14);
+  color: #e9ebef; border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer;
+}
+.bs-k:hover { background: rgba(255, 255, 255, .16); }
+.bs-stufe { font-variant-numeric: tabular-nums; min-width: 64px; }
+.bs-zu { font-size: 19px; line-height: 1; }
+
+.bs-buehne { flex: 1; position: relative; overflow: hidden; cursor: grab; touch-action: none; }
+.bs-buehne.schiebt { cursor: grabbing; }
+.bs-halter { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+.bs-fuss {
+  padding: 9px 14px; padding-bottom: max(9px, env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  color: #9aa1ad; font-size: 12.5px;
+}
+
+/* ---- Bild-Karte: der Anfasser, der die Bildschau öffnet -------------- */
+
+.bild-karte {
+  display: block; width: 100%; padding: 0; border: 0; cursor: zoom-in;
+  background: var(--flaeche); border-radius: var(--r-klein); overflow: hidden;
+  position: relative; line-height: 0;
+}
+.bild-karte:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
+.bild-buehne { position: relative; overflow: hidden; background: #E7E3DA; display: block; width: 100%; }
+.bild-halter { position: absolute; top: 0; left: 0; transform-origin: 0 0; display: block; }
+/* Beschnittene Vorschau: eine Verlaufskante sagt „da ist mehr", statt
+   auszusehen, als wäre die Grafik abgeschnitten. */
+.bild-karte.beschnitten .bild-buehne::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 64px;
+  background: linear-gradient(to bottom, rgba(231,227,218,0), rgba(231,227,218,.96));
+  pointer-events: none; z-index: 1;
+}
+
+.bild-lupe {
+  position: absolute; right: 8px; bottom: 8px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(10, 11, 14, .72); color: #fff;
+  border-radius: 999px; padding: 5px 10px; font-size: 11.5px; line-height: 1.2;
+}
+.bild-karte:hover .bild-lupe { background: rgba(10, 11, 14, .88); }
+.bild-lupe svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+/* ---- Vokabular der Folie: belegt, strittig, einordnung --------------- */
+
+:root {
+  --strittig: #d98b6a;
+  --strittig-matt: #4a3025;
+  --beleg: #7fb0d8;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --strittig: #b25b31;
+    --strittig-matt: #f2ddd2;
+    --beleg: #2f6690;
+  }
+}
+
+
+/* ---- Einstieg ins Kapitel-Untermenü --------------------------------- */
+
+.k-einstieg {
+  display: flex; align-items: center; gap: 12px;
+  margin: 2px 2px 12px 34px; padding: 10px 13px;
+  background: var(--flaeche); border: 1px solid var(--linie);
+  border-radius: var(--r-klein); text-decoration: none; color: inherit;
+}
+.k-einstieg:hover { border-color: var(--fokus); background: var(--flaeche-hoch); }
+.k-einstieg-text { flex: 1; min-width: 0; }
+.k-einstieg-text b { display: block; font-size: 13.5px; font-weight: 600; }
+.k-einstieg-text i { display: block; font-style: normal; font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.k-einstieg-pfeil { flex: none; width: 14px; color: var(--text-3); }
+.k-einstieg:hover .k-einstieg-pfeil { color: var(--fokus); }
+
+/* Lektionszeile als Verweis ins Lektions-Untermenü */
+a.l-zeile { text-decoration: none; color: inherit; }
+a.l-zeile:hover .l-titel { color: var(--fokus); }
+
+/* Zusatzinfo erscheint nur auf Wunsch (11.09.2026).
+   Der Inhalt ist nicht weg, er ist nur nicht im Weg. */
+.k-fuss, .bei-bedarf {
+  border-top: 1px solid var(--linie-zart);
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.k-fuss > summary, .bei-bedarf > summary {
+  cursor: pointer;
+  padding: 9px 0;
+  list-style: none;
+  color: var(--text-3);
+  user-select: none;
+}
+.k-fuss > summary::-webkit-details-marker,
+.bei-bedarf > summary::-webkit-details-marker { display: none; }
+.k-fuss > summary::before, .bei-bedarf > summary::before {
+  content: '›';
+  display: inline-block;
+  width: 1em;
+  transition: transform .15s ease;
+}
+.k-fuss[open] > summary::before, .bei-bedarf[open] > summary::before {
+  transform: rotate(90deg);
+}
+.k-fuss > div, .bei-bedarf-inhalt { padding-bottom: 14px; line-height: 1.55; }
+
+/* Die Übersichtsfolie nach Abschnitten. Der erste ist offen, der Rest auf
+   Wunsch — 57 Punkte am Stück sind keine Übersicht (POD-13). */
+.folie-teil { border-bottom: 1px solid var(--linie-zart); }
+.folie-teil:last-child { border-bottom: 0; }
+.folie-teil > summary {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 11px 16px; cursor: pointer; list-style: none; user-select: none;
+}
+.folie-teil > summary::-webkit-details-marker { display: none; }
+.folie-teil > summary::before {
+  content: '›'; color: var(--text-3); transition: transform .15s ease;
+}
+.folie-teil[open] > summary::before { transform: rotate(90deg); }
+.ft-zeit { font-variant-numeric: tabular-nums; color: var(--hoeren); font-size: 13px; }
+.ft-titel { flex: 1; font-weight: 600; font-size: 14.5px; }
+.ft-zahl { color: var(--text-3); font-size: 12.5px; }
+
+/* Eine geplante Lektion ist kein Verweis: dahinter liegt nichts. Sie steht
+   trotzdem da, sonst sähe das Kapitel fertig aus (TB-8). */
+.l-zeile.l-geplant { opacity: .5; cursor: default; }
+.l-zeile.l-geplant .l-dauer { font-style: italic; }
+
+/* Gruppierung nach Lernpfad. Sie erscheint erst ab dem zweiten Pfad — bei
+   einem einzigen stünde eine Überschrift über allem und sagte nichts. */
+.pfad { margin-bottom: 26px; }
+.pfad-kopf { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 0 2px 8px; border-bottom: 1px solid var(--linie-zart); margin-bottom: 10px; }
+.pfad-kopf h2 { margin: 0; font-size: 13px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+.pfad-bilanz { margin-left: auto; font-size: 12px; color: var(--text-3); }
+
+/* Die stille Fußzeile. Klein und grau: Der Notausgang muss auffindbar sein,
+   ohne sich anzubieten. Die Fassung daneben beantwortet die Frage, die bei
+   jedem Cache-Verdacht zuerst kommt. */
+.huelle-fuss { display: flex; gap: 14px; justify-content: center;
+  padding: 28px 16px 34px; font-size: 11.5px; color: var(--text-3);
+  font-variant-numeric: tabular-nums; }
+.huelle-fuss a { color: var(--text-3); text-decoration: none;
+  border-bottom: 1px solid var(--linie-zart); }
+.huelle-fuss a:hover { color: var(--text-2); }
+.huelle-fuss .neue-fassung { color: var(--hoeren); border-bottom-color: var(--hoeren); }

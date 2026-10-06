@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TeachBuddy zurücksetzen</title>
+<link rel="stylesheet" href="./stil.css">
+<style>
+  body { padding: 26px 20px; max-width: 34rem; margin: 0 auto; }
+  h1 { font-size: 21px; margin: 0 0 12px; }
+  p { line-height: 1.6; margin: 0 0 12px; }
+  .knopf { display: inline-block; padding: 11px 20px; font: inherit; cursor: pointer;
+    border: 1px solid var(--linie); border-radius: var(--r-klein);
+    background: var(--flaeche-hoch); color: var(--text); }
+  .knopf.stark { background: var(--hoeren); border-color: var(--hoeren); color: #fff; }
+  #befund { font-size: 13.5px; line-height: 1.6; color: var(--text-2);
+    background: var(--flaeche-hoch); border: 1px solid var(--linie-zart);
+    border-radius: var(--r-klein); padding: 12px 14px; word-break: break-word; }
+  #befund code { font-size: 12.5px; }
+  #spur { margin-top: 18px; font-size: 13.5px; color: var(--text-3); line-height: 1.7; }
+  #spur div::before { content: '· '; }
+</style>
+</head>
+<body>
+<h1>TeachBuddy zurücksetzen</h1>
+
+<p>Dieser Knopf wirft <b>alles weg, was das Gerät gespeichert hat</b>: den
+Service Worker, sämtliche Caches und den Bestand des Browsers selbst. Jede
+Datei der App wird danach einmal neu vom Server geholt.</p>
+
+<p>Er ist für den Fall gedacht, dass die App weiß bleibt, veraltet wirkt oder
+nur im Privatfenster läuft. Das kostet nichts außer einem Neuladen — nur
+offline gesicherte Lektionen müssen danach neu gesichert werden.</p>
+
+<p>
+  <button class="knopf stark" id="los">Alles zurücksetzen</button>
+  <a class="knopf" href="./uebersicht.html">Zurück zur App</a>
+</p>
+
+<h2 style="font-size:15px;margin:22px 0 8px">Was auf diesem Gerät liegt</h2>
+<div id="befund">wird geprüft …</div>
+
+<div id="spur"></div>
+
+<script>
+// Bewusst **kein** Modul und ohne Import: Diese Seite muss auch dann laufen,
+// wenn genau das kaputt ist, weswegen jemand hierherkommt.
+const spur = document.getElementById('spur');
+
+// **Erst messen, dann wegwerfen.** Bis zum 13.09.2026 habe ich auf dem Server
+// Hypothesen getestet, während der Fehler auf die Telefon saß. Diese Seite
+// zeigt, was dort wirklich liegt: welche Worker registriert sind, mit welcher
+// Reichweite, welche Caches es gibt und welche Fassung der Server ausliefert.
+(async function befunden() {
+  const z = document.getElementById('befund');
+  const zeilen = [];
+  const sag = (a, b) => zeilen.push(
+    `<div style="margin:0 0 6px"><b style="font-weight:600">${a}</b> ${b}</div>`);
+
+  try {
+    const r = 'serviceWorker' in navigator
+      ? await navigator.serviceWorker.getRegistrations() : [];
+    if (!r.length) sag('Service Worker:', 'keiner registriert');
+    for (const x of r) {
+      const w = x.active || x.waiting || x.installing;
+      sag('Service Worker:', `Reichweite <code>${x.scope}</code><br>`
+        + `<span style="color:#6A7078">Skript: ${w ? w.scriptURL : '—'} · `
+        + `Zustand: ${w ? w.state : '—'}</span>`);
+    }
+  } catch (f) { sag('Service Worker:', 'nicht lesbar (' + f.message + ')'); }
+
+  try {
+    const n = 'caches' in window ? await caches.keys() : [];
+    sag('Caches:', n.length ? n.map((x) => `<code>${x}</code>`).join(', ') : 'keine');
+  } catch (f) { sag('Caches:', 'nicht lesbar (' + f.message + ')'); }
+
+  try {
+    const a = await fetch('./version.json', { cache: 'no-store' });
+    sag('Der Server liefert:', '<code>' + ((await a.json()).fassung || '?') + '</code>');
+  } catch (f) { sag('Der Server liefert:', 'nicht erreichbar'); }
+
+  sag('Adresse:', `<code>${location.origin}${location.pathname}</code>`);
+  z.innerHTML = zeilen.join('');
+})();
+const sag = (t) => { const d = document.createElement('div'); d.textContent = t; spur.appendChild(d); };
+
+/**
+ * Jede Datei der App einmal neu vom Server holen.
+ *
+ * **Der Bestand des Browsers ist der dritte Speicher**, und der, an dem es am
+ * 13.09.2026 lag. Worker und Caches wegzuwerfen erreicht ihn nicht. Ein
+ * `?frisch=…` an der HTML-Adresse auch nicht: Es holt die Seite neu, aber die
+ * Module darunter behalten ihre Adresse und kommen weiter aus dem alten
+ * Bestand. Frische Seite, alte Module, und der Import geht ins Leere — der
+ * Knopf hat den Fehler so sogar zuverlaessig erzeugt.
+ *
+ * `cache: 'reload'` geht fuer jede Datei ans Netz **und legt die Antwort neu
+ * ab**. Das ist die einzige Moeglichkeit, den Bestand von innen auszutauschen.
+ * Danach ist die gewoehnliche Adresse wieder die richtige, und der Zeitstempel
+ * kann weg.
+ *
+ * Seit der Server `Cache-Control: no-cache` sendet, entsteht diese Mischung
+ * nicht mehr neu. Was vorher abgelegt wurde, liegt aber weiter da und gilt fuer
+ * den Browser als frisch. Hier wird es geholt.
+ */
+async function mantelErneuern() {
+  let mantel;
+  try {
+    const a = await fetch('./version.json', { cache: 'no-store' });
+    mantel = (await a.json()).mantel;
+  } catch {
+    sag('Server nicht erreichbar. Der Bestand des Browsers bleibt, wie er ist.');
+    return;
+  }
+  if (!Array.isArray(mantel) || !mantel.length) {
+    sag('Der Server nennt keine Dateiliste. Nichts zu erneuern.');
+    return;
+  }
+  const fehlend = [];
+  let frisch = 0;
+  for (const name of mantel) {
+    try {
+      const a = await fetch('./' + name, { cache: 'reload' });
+      if (a.ok) frisch += 1; else fehlend.push(name + ' (' + a.status + ')');
+    } catch (f) { fehlend.push(name); }
+  }
+  sag(`Neu vom Server geholt: ${frisch} von ${mantel.length} Dateien`);
+  if (fehlend.length) sag('Nicht geholt: ' + fehlend.join(', '));
+}
+
+document.getElementById('los').addEventListener('click', async () => {
+  document.getElementById('los').disabled = true;
+  try {
+    if ('serviceWorker' in navigator) {
+      const alle = await navigator.serviceWorker.getRegistrations();
+      for (const r of alle) { await r.unregister(); sag('Service Worker abgemeldet'); }
+      if (!alle.length) sag('Kein Service Worker vorhanden');
+    }
+    if ('caches' in window) {
+      const namen = await caches.keys();
+      for (const n of namen) { await caches.delete(n); sag('Cache gelöscht: ' + n); }
+      if (!namen.length) sag('Keine Caches vorhanden');
+    }
+    await mantelErneuern();
+    sag('Fertig. Lädt in zwei Sekunden neu …');
+    setTimeout(() => { location.replace('./uebersicht.html'); }, 2000);
+  } catch (f) {
+    sag('Fehlgeschlagen: ' + f.message);
+    sag('Dann hilft nur: Seite im Browser über „Website-Daten löschen“ leeren.');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "name": "TeachBuddy",
+  "short_name": "TeachBuddy",
+  "description": "Wissen, belegt gesammelt und in der Form ausgespielt, in der man es aufnimmt.",
+  "start_url": "./uebersicht.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#b57722",
+  "lang": "de",
+  "dir": "ltr",
+  "categories": [
+    "education"
+  ],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "teachbuddy",
+  "orientation": "any"
+}
